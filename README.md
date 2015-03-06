@@ -70,3 +70,39 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * email_smtp_port - SMTP port of the email service
 * email_username - SMTP authentication username
 * email_password - SMTP authentication password
+
+## Screenshots
+
+### Email
+
+Top:
+![alt tag](http://i.imgur.com/ufWQcw8.png)
+
+Movies:
+![alt tag](http://i.imgur.com/jf5QKKL.png)
+
+TV Shows:
+![alt tag](http://i.imgur.com/CalJ2b8.png)
+
+TV Seasons:
+![alt tag](http://i.imgur.com/tqMqGVa.png)
+
+TV Episodes:
+![alt tag](http://i.imgur.com/zujePDP.png)
+
+### Web
+
+Top:
+![alt tag](hhttp://i.imgur.com/eRikpyh.png)
+
+Movies:
+![alt tag](http://i.imgur.com/nZIyg36.png)
+
+TV Shows:
+![alt tag](http://i.imgur.com/ZuewjkY.png)
+
+TV Seasons:
+![alt tag](http://i.imgur.com/fanEPMq.png)
+
+TV Episodes:
+![alt tag](http://i.imgur.com/RHxMIjY.png)
