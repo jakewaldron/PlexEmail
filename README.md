@@ -22,7 +22,7 @@ This script aggregates all new TV and movie releases for the past x days and wri
 1. Clone this repo or download the zip
 2. Copy the contents of scripts to where you want the script to run from
 3. Copy the contents of web to your web folder
-4. Schedule a weekly task to exectute scripts\plexEmail.vbs (make sure to set the start in folder as the folder where the vbs script resides)
+4. Schedule a weekly task to execute plexEmail.vbs from the scripts folder (make sure to set the start in folder as the folder where the vbs script resides)
 
 ## Config File
 
