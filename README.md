@@ -5,10 +5,10 @@ Plex Email
 This script aggregates all new TV and movie releases for the past x days and writes to your web directory and sends out an email.
 
 ## Supported Environments
-*Windows
+* Windows
 
 ## Supported Email Protocols
-*SMTP
+* SMTP
 
 ## Prerequisites
 
@@ -28,16 +28,16 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 
 Required Fields to Update:
 
-*plex_data_folder
-*web_folder
-*web_domain
-*web_path
-*email_to
-*email_from
-*email_smtp_address (gmail default)
-*email_smtp_port
-*email_username
-*email_password
+* plex_data_folder
+* web_folder
+* web_domain
+* web_path
+* email_to
+* email_from
+* email_smtp_address (gmail default)
+* email_smtp_port
+* email_username
+* email_password
 
 Field Explanations:
 
