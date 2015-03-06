@@ -6,6 +6,9 @@ import operator
 import shutil
 import smtplib
 from datetime import date, timedelta
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.MIMEImage import MIMEImage
 
 def replaceConfigTokens():
   for value in config:
@@ -13,7 +16,18 @@ def replaceConfigTokens():
       config[value] = config[value].replace('{past_day}', str((date.today() - timedelta(days=config['days_back_to_search'])).strftime(config['date_format'])))
       config[value] = config[value].replace('{current_day}', str(date.today().strftime(config['date_format'])))
       config[value] = config[value].replace('{website}', config['web_domain'] + config['web_path'])
-    
+      
+def containsnonasciicharacters(str):
+  return not all(ord(c) < 128 for c in str)   
+
+def addheader(message, headername, headervalue):
+  if containsnonasciicharacters(headervalue):
+    h = Header(headervalue, 'utf-8')
+    message[headername] = h
+  else:
+    message[headername] = headervalue    
+  return message
+
 config = {}
 execfile(os.path.dirname(os.path.realpath(sys.argv[0])) + '\\config.conf', config)
 replaceConfigTokens()
@@ -555,11 +569,7 @@ with con:
       with open(config['web_folder'] + config['web_path'] + '\\index.html', 'w') as text_file:
         text_file.write(html)
       
-    if (config['email_enabled']):
-      from email.mime.multipart import MIMEMultipart
-      from email.mime.text import MIMEText
-      from email.MIMEImage import MIMEImage
-      
+    if (config['email_enabled']):      
       gmail_user = config['email_username']
       gmail_pwd = config['email_password']
       smtp_address = config['email_smtp_address']
@@ -567,20 +577,26 @@ with con:
       FROM = config['email_from']
       TO = config['email_to']
       SUBJECT = config['msg_email_subject']
-      TEXT = emailText
 
       # Create message container - the correct MIME type is multipart/alternative.
       msg = MIMEMultipart('alternative')
-      msg['Subject'] = SUBJECT
+      msg = addheader(msg, 'Subject', SUBJECT)
       msg['From'] = FROM
       msg['To'] = ", ".join(TO)
 
       # Create the body of the message (a plain-text and an HTML version).
       text = config['msg_email_teaser']
-
+      
       # Record the MIME types of both parts - text/plain and text/html.
-      part1 = MIMEText(text, 'plain')
-      part2 = MIMEText(emailText, 'html')
+      if containsnonasciicharacters(emailText):
+        htmltext = MIMEText(emailText, 'html','utf-8')
+      else:
+        htmltext = MIMEText(emailText, 'html')    
+
+      if(containsnonasciicharacters(text)):
+        plaintext = MIMEText(text,'plain','utf-8') 
+      else:
+        plaintext = MIMEText(text,'plain')
       
       #Create image headers
       for image in imgNames:
@@ -593,8 +609,8 @@ with con:
       # Attach parts into message container.
       # According to RFC 2046, the last part of a multipart message, in this case
       # the HTML message, is best and preferred.
-      msg.attach(part1)
-      msg.attach(part2)
+      msg.attach(plaintext)
+      msg.attach(htmltext)
 
       try:
           #server = smtplib.SMTP(SERVER) 
