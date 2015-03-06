@@ -26,7 +26,7 @@ This script aggregates all new TV and movie releases for the past x days and wri
 
 The config file is in the scripts folder.  Before first run of the script, please update this file with your information.
 
-Required Fields to Update:
+####Required Fields to Update:
 
 * plex_data_folder
 * web_folder
@@ -39,34 +39,34 @@ Required Fields to Update:
 * email_username
 * email_password
 
-Field Explanations:
+####Field Explanations:
 
 #####Folder Paths
-plex_data_folder - Location where the Plex Media Server folder is located
-web_folder - Location of web/www/public_html folder is located
+* plex_data_folder - Location where the Plex Media Server folder is located
+* web_folder - Location of web/www/public_html folder is located
 
 #####General
-date_format - Format to use for the date
-days_back_to_search - Number of days to search backwards
+* date_format - Format to use for the date
+* days_back_to_search - Number of days to search backwards
 
 #####Messages
-msg_email_teaser - Teaser text on the email
-msg_web_title - Title of the webpage
-msg_email_subject Subject of email
-msg_header1 - First header text
-msg_header2 - Second header text
-msg_header3 - Third header text.  Only used in the email
+* msg_email_teaser - Teaser text on the email
+* msg_web_title - Title of the webpage
+* msg_email_subject Subject of email
+* msg_header1 - First header text
+* msg_header2 - Second header text
+* msg_header3 - Third header text.  Only used in the email
 
 #####Web
-web_enabled - Enable the creation of the web page
-web_domain - Domain name of the web page
-web_path - Path on the domain to the web page
+* web_enabled - Enable the creation of the web page
+* web_domain - Domain name of the web page
+* web_path - Path on the domain to the web page
 
 #####Email
-email_enabled - Enable the creation and sending of an email
-email_to - Array of email addresses to send the email
-email_from - Email address to send the email from
-email_smtp_address - SMTP address of the email service
-email_smtp_port - SMTP port of the email service
-email_username - SMTP authentication username
-email_password - SMTP authentication password
+* email_enabled - Enable the creation and sending of an email
+* email_to - Array of email addresses to send the email
+* email_from - Email address to send the email from
+* email_smtp_address - SMTP address of the email service
+* email_smtp_port - SMTP port of the email service
+* email_username - SMTP authentication username
+* email_password - SMTP authentication password
