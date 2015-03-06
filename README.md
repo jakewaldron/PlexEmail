@@ -44,8 +44,8 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 ####Field Explanations:
 
 #####Folder Paths
-* plex_data_folder - Location where the Plex Media Server folder is located
-* web_folder - Location of web/www/public_html folder is located
+* plex_data_folder - Location where the Plex Media Server folder is located - i.e. E:\\Library\\Plex\\
+* web_folder - Location of web/www/public_html folder is located - i.e. C:\\wamp\\www\\
 
 #####General
 * date_format - Format to use for the date
