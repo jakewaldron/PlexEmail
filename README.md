@@ -101,10 +101,10 @@ Movies:
 ![alt tag](http://i.imgur.com/nZIyg36.png)
 
 TV Shows:
-![alt tag](http://i.imgur.com/cY36zCzs.jpg)
+![alt tag](http://i.imgur.com/cY36zCz.png)
 
 TV Seasons:
-![alt tag](http://i.imgur.com/fF7HNL4s.jpg)
+![alt tag](http://i.imgur.com/fF7HNL4.jpg)
 
 TV Episodes:
-![alt tag](http://i.imgur.com/xiwUNPTs.jpg)
+![alt tag](http://i.imgur.com/xiwUNPT.jpg)
