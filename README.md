@@ -93,7 +93,7 @@ TV Episodes:
 ### Web
 
 Top:
-![alt tag](hhttp://i.imgur.com/eRikpyh.png)
+![alt tag](http://i.imgur.com/eRikpyh.png)
 
 Movies:
 ![alt tag](http://i.imgur.com/nZIyg36.png)
