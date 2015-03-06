@@ -14,6 +14,7 @@ This script aggregates all new TV and movie releases for the past x days and wri
 
 1. Python 2.7 - 32 bit - https://www.python.org/ftp/python/2.7.9/python-2.7.9.msi
 2. 32 bit DLL for SQLite version 3.8.8.3 - http://www.sqlite.org/2015/sqlite-dll-win32-x86-3080803.zip (Put this into the DLLs folder of the Python installation)
+3. If web reports are wanted, a web server (i.e. Wamp)
 
 
 ## Installation (Windows)
@@ -21,6 +22,7 @@ This script aggregates all new TV and movie releases for the past x days and wri
 1. Clone this repo or download the zip
 2. Copy the contents of scripts to where you want the script to run from
 3. Copy the contents of web to your web folder
+4. Schedule a weekly task to exectute scripts\plexEmail.vbs (make sure to set the start in folder as the folder where the vbs script resides)
 
 ## Config File
 
@@ -99,10 +101,10 @@ Movies:
 ![alt tag](http://i.imgur.com/nZIyg36.png)
 
 TV Shows:
-![alt tag](http://i.imgur.com/ZuewjkY.png)
+![alt tag](http://i.imgur.com/cY36zCzs.jpg)
 
 TV Seasons:
-![alt tag](http://i.imgur.com/fanEPMq.png)
+![alt tag](http://i.imgur.com/fF7HNL4s.jpg)
 
 TV Episodes:
-![alt tag](http://i.imgur.com/RHxMIjY.png)
+![alt tag](http://i.imgur.com/xiwUNPTs.jpg)
