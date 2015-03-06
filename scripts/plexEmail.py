@@ -74,10 +74,9 @@ with con:
                 <div class="headline" style="background: #272727;  padding: 40px 0;">
                     <div class="container" style="background: #272727;">
                         <h1 style="width: 100%; text-align: center; background: #272727 !important; color: #F9AA03 !important;">""" + config['msg_header1'] + """</h1>
-                        <h2 style="width: 100%; text-align: center; background: #272727 !important; color: #9A9A9A !important;">""" + config['msg_header2'] + """</h2>"""
-    if (config['web_enabled']):
-      emailText += """<h2 style="width: 100%; text-align: center; background: #272727 !important; color: #9A9A9A !important;">""" + config['msg_header3'] + """</h2>"""
-    emailText += """                </div>
+                        <h2 style="width: 100%; text-align: center; background: #272727 !important; color: #9A9A9A !important;">""" + config['msg_header2'] + """</h2>
+                        <h2 style="width: 100%; text-align: center; background: #272727 !important; color: #9A9A9A !important;">""" + config['msg_header3'] + """</h2>
+                </div>
                 </div>
             </header>
 
@@ -222,22 +221,34 @@ with con:
       title += movie[1]['title']
       hash = str(movie[1]['hash'])
       thumb = movie[1]['user_thumb_url']
-      thumb = thumb[11:len(thumb)]
-      category = thumb[0:thumb.index('/')]
-      indexer = thumb[thumb.index('/') + 1:thumb.index('_')]
-      imgName = thumb[thumb.index('_') + 1:len(thumb)]
-      imgLocation = config['plex_data_folder'] + 'Plex Media Server\\Metadata\\Movies\\' + hash[0] + '\\' + hash[1:len(hash)] + '.bundle\\Contents\\' + indexer + '\\' + category + '\\' + imgName
-      img = config['web_folder'] + config['web_path'] + '\\images\\' + imgName + '.png'
-      shutil.copy(imgLocation, img)
-      imgNames['Image_' + imgName] = imgLocation
+      if (thumb.find('http://') < 0):
+        thumb = thumb[11:len(thumb)]
+        category = thumb[0:thumb.index('/')]
+        indexer = thumb[thumb.index('/') + 1:thumb.index('_')]
+        imgName = thumb[thumb.index('_') + 1:len(thumb)]
+        imgLocation = config['plex_data_folder'] + 'Plex Media Server\\Metadata\\Movies\\' + hash[0] + '\\' + hash[1:len(hash)] + '.bundle\\Contents\\' + indexer + '\\' + category + '\\' + imgName
+        webImgPath = 'images/' + imgName + '.png'
+        emailImgPath = 'cid:Image_' + imgName
+        img = config['web_folder'] + config['web_path'] + '\\images\\' + imgName + '.png'
+        shutil.copy(imgLocation, img)
+        imgNames['Image_' + imgName] = imgLocation
+      else:
+        imgName = thumb[thumb.rfind('/') + 1:thumb.rfind('.')]
+        imgLocation = thumb
+        webImgPath = thumb
+        emailImgPath = thumb
       
       emailMovies += '<table><tr width="100%">'
-      emailMovies += '<td width="200px"><img class="featurette-image img-responsive pull-left" src="cid:Image_' + imgName +'" width="154px"></td>'
+      emailMovies += '<td width="200px">'
+      if (imgName != ''):
+        emailMovies += '<img class="featurette-image img-responsive pull-left" src="' + emailImgPath +'" width="154px">'
+      emailMovies += '</td>'
       emailMovies += '<td><h2 class="featurette-heading">' + title + '</h2>'
       if (movie[1]['tagline'] != ''):
         emailMovies += '<p class="lead"><i>' + movie[1]['tagline'] + '</i></p>'
       emailMovies += '<p class="lead">' + movie[1]['summary'] + '</p>'
-      emailMovies += '<p class="lead">Runtime: ' + str(movie[1]['duration'] // 1000 // 60) + ' minutes</p>'
+      if (movie[1]['duration']):
+        emailMovies += '<p class="lead">Runtime: ' + str(movie[1]['duration'] // 1000 // 60) + ' minutes</p>'
       if (movie[1]['year']):
         emailMovies += '<p class="lead">Release Year: ' + str(movie[1]['year']) + '</p>'
       if (movie[1]['rating']):
@@ -245,12 +256,13 @@ with con:
       emailMovies += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
       
       htmlMovies += '<div class="featurette" id="movies">'
-      htmlMovies += '<img class="featurette-image img-responsive pull-left" src="images/' + imgName + '.png" width="154px" height="218px">'
+      htmlMovies += '<img class="featurette-image img-responsive pull-left" src="' + webImgPath + '" width="154px" height="218px">'
       htmlMovies += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + title + '</h2>'
       if (movie[1]['tagline'] != ''):
         htmlMovies += '<p class="lead"><i>' + movie[1]['tagline'] + '</i></p>'
       htmlMovies += '<p class="lead">' + movie[1]['summary'] + '</p>'
-      htmlMovies += '<p class="lead">Runtime: ' + str(movie[1]['duration'] // 1000 // 60) + ' minutes</p>'
+      if (movie[1]['duration']):
+        htmlMovies += '<p class="lead">Runtime: ' + str(movie[1]['duration'] // 1000 // 60) + ' minutes</p>'
       if (movie[1]['year']):
         htmlMovies += '<p class="lead">Release Year: ' + str(movie[1]['year']) + '</p>'
       if (movie[1]['rating']):
@@ -264,17 +276,25 @@ with con:
       title += show[1]['title']
       hash = str(show[1]['hash'])
       thumb = show[1]['user_thumb_url']
-      thumb = thumb[11:len(thumb)]
-      category = thumb[0:thumb.index('/')]
-      indexer = thumb[thumb.index('/') + 1:thumb.index('_')]
-      imgName = thumb[thumb.index('_') + 1:len(thumb)]
-      imgLocation = config['plex_data_folder'] + 'Plex Media Server\\Metadata\\TV Shows\\' + hash[0] + '\\' + hash[1:len(hash)] + '.bundle\\Contents\\' + indexer + '\\' + category + '\\' + imgName
-      img = config['web_folder'] + config['web_path'] + '\\images\\' + imgName + '.png'
-      shutil.copy(imgLocation, img)
-      imgNames['Image_' + imgName] = imgLocation
+      if (thumb.find('http://') < 0):
+        thumb = thumb[11:len(thumb)]
+        category = thumb[0:thumb.index('/')]
+        indexer = thumb[thumb.index('/') + 1:thumb.index('_')]
+        imgName = thumb[thumb.index('_') + 1:len(thumb)]
+        imgLocation = config['plex_data_folder'] + 'Plex Media Server\\Metadata\\TV Shows\\' + hash[0] + '\\' + hash[1:len(hash)] + '.bundle\\Contents\\' + indexer + '\\' + category + '\\' + imgName
+        webImgPath = 'images/' + imgName + '.png'
+        emailImgPath = 'cid:Image_' + imgName
+        img = config['web_folder'] + config['web_path'] + '\\images\\' + imgName + '.png'
+        shutil.copy(imgLocation, img)
+        imgNames['Image_' + imgName] = imgLocation
+      else:
+        imgName = thumb[thumb.rfind('/') + 1:thumb.rfind('.')]
+        imgLocation = thumb
+        webImgPath = thumb
+        emailImgPath = thumb
       
       emailTVShows += '<table><tr width="100%">'
-      emailTVShows += '<td width="200px"><img class="featurette-image img-responsive pull-left" src="cid:Image_' + imgName +'" width="154px"></td>'
+      emailTVShows += '<td width="200px"><img class="featurette-image img-responsive pull-left" src="' + emailImgPath +'" width="154px"></td>'
       emailTVShows += '<td><h2 class="featurette-heading">' + title + '</h2>'
       if (show[1]['tagline'] != ''):
         emailTVShows += '<p class="lead"><i>' + show[1]['tagline'] + '</i></p>'
@@ -284,7 +304,7 @@ with con:
       emailTVShows += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
       
       htmlTVShows += '<div class="featurette" id="shows">'
-      htmlTVShows += '<img class="featurette-image img-responsive pull-left" src="images/' + imgName + '.png" width="154px" height="218px">'
+      htmlTVShows += '<img class="featurette-image img-responsive pull-left" src="' + webImgPath + '" width="154px" height="218px">'
       htmlTVShows += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + title + '</h2>'
       if (show[1]['tagline'] != ''):
         htmlTVShows += '<p class="lead"><i>' + show[1]['tagline'] + '</i></p>'
@@ -323,20 +343,28 @@ with con:
       thumb = season[1]['user_thumb_url']
       if (thumb == ''):
         thumb = season[1]['parent_thumb_url']
-      thumb = thumb[11:len(thumb)]
-      category = thumb[0:thumb.index('/')]
-      indexer = thumb[thumb.index('posters/') + 8:thumb.index('_')]
-      imgName = thumb[thumb.index('_') + 1:len(thumb)]
-      if (season[1]['user_thumb_url'] != ""):
-        imgLocation = config['plex_data_folder'] + 'Plex Media Server\\Metadata\\TV Shows\\' + hash[0] + '\\' + hash[1:len(hash)] + '.bundle\\Contents\\' + indexer + '\\' + category + '\\' + str(season[1]['index']) + '\\posters\\' + imgName
+      if (thumb.find('http://') < 0):
+        thumb = thumb[11:len(thumb)]
+        category = thumb[0:thumb.index('/')]
+        indexer = thumb[thumb.index('posters/') + 8:thumb.index('_')]
+        imgName = thumb[thumb.index('_') + 1:len(thumb)]
+        if (season[1]['user_thumb_url'] != ""):
+          imgLocation = config['plex_data_folder'] + 'Plex Media Server\\Metadata\\TV Shows\\' + hash[0] + '\\' + hash[1:len(hash)] + '.bundle\\Contents\\' + indexer + '\\' + category + '\\' + str(season[1]['index']) + '\\posters\\' + imgName
+        else:
+          imgLocation = config['plex_data_folder'] + 'Plex Media Server\\Metadata\\TV Shows\\' + hash[0] + '\\' + hash[1:len(hash)] + '.bundle\\Contents\\' + indexer + '\\' + category + '\\' + imgName
+        webImgPath = 'images/' + imgName + '.png'
+        emailImgPath = 'cid:Image_' + imgName
+        img = config['web_folder'] + config['web_path'] + '\\images\\' + imgName + '.png'
+        shutil.copy(imgLocation, img)
+        imgNames['Image_' + imgName] = imgLocation
       else:
-        imgLocation = config['plex_data_folder'] + 'Plex Media Server\\Metadata\\TV Shows\\' + hash[0] + '\\' + hash[1:len(hash)] + '.bundle\\Contents\\' + indexer + '\\' + category + '\\' + imgName
-      img = config['web_folder'] + config['web_path'] + '\\images\\' + imgName + '.png'
-      shutil.copy(imgLocation, img)
-      imgNames['Image_' + imgName] = imgLocation
+        imgName = thumb[thumb.rfind('/') + 1:thumb.rfind('.')]
+        imgLocation = thumb
+        webImgPath = thumb
+        emailImgPath = thumb
       
       emailTVSeasons += '<table><tr width="100%">'
-      emailTVSeasons += '<td width="200px"><img class="featurette-image img-responsive pull-left" src="cid:Image_' + imgName +'" width="154px"></td>'
+      emailTVSeasons += '<td width="200px"><img class="featurette-image img-responsive pull-left" src="' + emailImgPath +'" width="154px"></td>'
       emailTVSeasons += '<td><h2 class="featurette-heading">' + title + '</h2>'
       emailTVSeasons += '<p class="lead"><b>Season ' + str(season[1]['index']) + '</b></p>'
       if (season[1]['tagline'] != ''):
@@ -347,7 +375,7 @@ with con:
       emailTVSeasons += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
       
       htmlTVSeasons += '<div class="featurette" id="shows">'
-      htmlTVSeasons += '<img class="featurette-image img-responsive pull-left" src="images/' + imgName + '.png" width="154px" height="218px">'
+      htmlTVSeasons += '<img class="featurette-image img-responsive pull-left" src="' + webImgPath + '" width="154px" height="218px">'
       htmlTVSeasons += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + title + '</h2>'
       htmlTVSeasons += '<p class="lead"><b>Season ' + str(season[1]['index']) + '</b></p>'
       if (season[1]['tagline'] != ''):
@@ -392,33 +420,46 @@ with con:
           title += episode[1]['original_title'] + ' AKA '
         title += episode[1]['title']
         hash = str(episode[1]['hash'])
-        if (episode[1]['user_thumb_url'] != "" and 'metadata://' in episode[1]['user_thumb_url']):
-          thumb = episode[1]['user_thumb_url']
-          thumb = thumb[11:len(thumb)]
-          category = thumb[0:thumb.index('/')]
-          indexer = thumb[thumb.index('thumbs/') + 7:thumb.index('_')]
-          imgName = thumb[thumb.index('_') + 1:len(thumb)]
-          imgLocation = config['plex_data_folder'] + 'Plex Media Server\\Metadata\\TV Shows\\' + hash[0] + '\\' + hash[1:len(hash)] + '.bundle\\Contents\\' + indexer + '\\seasons\\' + str(episode[1]['season_index']) + '\\episodes\\' + str(episode[1]['index']) + '\\thumbs\\' + imgName
-        elif (episode[1]['season_thumb_url'] != ""):
+        thumb = episode[1]['user_thumb_url']
+        if (thumb == ''):
           thumb = episode[1]['season_thumb_url']
-          thumb = thumb[11:len(thumb)]
-          category = thumb[0:thumb.index('/')]
-          indexer = thumb[thumb.index('posters/') + 8:thumb.index('_')]
-          imgName = thumb[thumb.index('_') + 1:len(thumb)]
-          imgLocation = config['plex_data_folder'] + 'Plex Media Server\\Metadata\\TV Shows\\' + hash[0] + '\\' + hash[1:len(hash)] + '.bundle\\Contents\\' + indexer + '\\seasons\\' + str(episode[1]['season_index']) + '\\posters\\' + imgName
-        else:
+        if (thumb == ''):
           thumb = episode[1]['show_thumb_url']
-          thumb = thumb[11:len(thumb)]
-          category = thumb[0:thumb.index('/')]
-          indexer = thumb[thumb.index('posters/') + 8:thumb.index('_')]
-          imgName = thumb[thumb.index('_') + 1:len(thumb)]
-          imgLocation = config['plex_data_folder'] + 'Plex Media Server\\Metadata\\TV Shows\\' + hash[0] + '\\' + hash[1:len(hash)] + '.bundle\\Contents\\' + indexer + '\\' + category + '\\' + imgName
-        img = config['web_folder'] + config['web_path'] + '\\images\\' + imgName + '.png'
-        shutil.copy(imgLocation, img)
-        imgNames['Image_' + imgName] = imgLocation
+        if (thumb.find('http://') < 0):
+          if (episode[1]['user_thumb_url'] != "" and 'metadata://' in episode[1]['user_thumb_url']):
+            thumb = episode[1]['user_thumb_url']
+            thumb = thumb[11:len(thumb)]
+            category = thumb[0:thumb.index('/')]
+            indexer = thumb[thumb.index('thumbs/') + 7:thumb.index('_')]
+            imgName = thumb[thumb.index('_') + 1:len(thumb)]
+            imgLocation = config['plex_data_folder'] + 'Plex Media Server\\Metadata\\TV Shows\\' + hash[0] + '\\' + hash[1:len(hash)] + '.bundle\\Contents\\' + indexer + '\\seasons\\' + str(episode[1]['season_index']) + '\\episodes\\' + str(episode[1]['index']) + '\\thumbs\\' + imgName
+          elif (episode[1]['season_thumb_url'] != ""):
+            thumb = episode[1]['season_thumb_url']
+            thumb = thumb[11:len(thumb)]
+            category = thumb[0:thumb.index('/')]
+            indexer = thumb[thumb.index('posters/') + 8:thumb.index('_')]
+            imgName = thumb[thumb.index('_') + 1:len(thumb)]
+            imgLocation = config['plex_data_folder'] + 'Plex Media Server\\Metadata\\TV Shows\\' + hash[0] + '\\' + hash[1:len(hash)] + '.bundle\\Contents\\' + indexer + '\\seasons\\' + str(episode[1]['season_index']) + '\\posters\\' + imgName
+          else:
+            thumb = episode[1]['show_thumb_url']
+            thumb = thumb[11:len(thumb)]
+            category = thumb[0:thumb.index('/')]
+            indexer = thumb[thumb.index('posters/') + 8:thumb.index('_')]
+            imgName = thumb[thumb.index('_') + 1:len(thumb)]
+            imgLocation = config['plex_data_folder'] + 'Plex Media Server\\Metadata\\TV Shows\\' + hash[0] + '\\' + hash[1:len(hash)] + '.bundle\\Contents\\' + indexer + '\\' + category + '\\' + imgName
+          webImgPath = 'images/' + imgName + '.png'
+          emailImgPath = 'cid:Image_' + imgName
+          img = config['web_folder'] + config['web_path'] + '\\images\\' + imgName + '.png'
+          shutil.copy(imgLocation, img)
+          imgNames['Image_' + imgName] = imgLocation
+        else:
+          imgName = thumb[thumb.rfind('/') + 1:thumb.rfind('.')]
+          imgLocation = thumb
+          webImgPath = thumb
+          emailImgPath = thumb
         
         emailTVEpisodes += '<table><tr width="100%">'
-        emailTVEpisodes += '<td width="200px"><img class="featurette-image img-responsive pull-left" src="cid:Image_' + imgName +'" width="154px"></td>'
+        emailTVEpisodes += '<td width="200px"><img class="featurette-image img-responsive pull-left" src="' + emailImgPath +'" width="154px"></td>'
         emailTVEpisodes += '<td><h2 class="featurette-heading">' + showTitle + '</h2>'
         emailTVEpisodes += '<p class="lead"><i>S' + str(episode[1]['season_index']) + ' E' + str(episode[1]['index']) + ': ' + title + '</i></p>'
         if (episode[1]['tagline'] != ''):
@@ -429,7 +470,7 @@ with con:
         emailTVEpisodes += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
         
         htmlTVEpisodes += '<div class="featurette" id="shows">'
-        htmlTVEpisodes += '<img class="featurette-image img-responsive pull-left" src="images/' + imgName + '.png" width="154px" height="218px">'
+        htmlTVEpisodes += '<img class="featurette-image img-responsive pull-left" src="' + webImgPath + '" width="154px" height="218px">'
         htmlTVEpisodes += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + showTitle + '</h2>'
         htmlTVEpisodes += '<p class="lead"><i>S' + str(episode[1]['season_index']) + ' E' + str(episode[1]['index']) + ': ' + title + '</i></p>'
         if (episode[1]['tagline'] != ''):
