@@ -72,6 +72,7 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * email_smtp_port - SMTP port of the email service
 * email_username - SMTP authentication username
 * email_password - SMTP authentication password
+* email_use_web_images - Use images from the web server instead of attaching them directly to the email
 
 ## Screenshots
 

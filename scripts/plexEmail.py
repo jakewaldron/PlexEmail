@@ -228,15 +228,21 @@ with con:
         imgName = thumb[thumb.index('_') + 1:len(thumb)]
         imgLocation = config['plex_data_folder'] + 'Plex Media Server\\Metadata\\Movies\\' + hash[0] + '\\' + hash[1:len(hash)] + '.bundle\\Contents\\' + indexer + '\\' + category + '\\' + imgName
         webImgPath = 'images/' + imgName + '.png'
+        webImgFullPath = config['web_domain'] + config['web_path'] + '/images/' + imgName + '.png'
         emailImgPath = 'cid:Image_' + imgName
         img = config['web_folder'] + config['web_path'] + '\\images\\' + imgName + '.png'
         shutil.copy(imgLocation, img)
-        imgNames['Image_' + imgName] = imgLocation
+        if (config['web_enabled'] == False or config['email_use_web_images'] == False):
+          imgNames['Image_' + imgName] = imgLocation
       else:
         imgName = thumb[thumb.rfind('/') + 1:thumb.rfind('.')]
         imgLocation = thumb
         webImgPath = thumb
+        webImgFullPath = thumb
         emailImgPath = thumb
+        
+      if (config['web_enabled'] and config['email_use_web_images']):
+        emailImgPath = webImgFullPath
       
       emailMovies += '<table><tr width="100%">'
       emailMovies += '<td width="200px">'
@@ -283,15 +289,21 @@ with con:
         imgName = thumb[thumb.index('_') + 1:len(thumb)]
         imgLocation = config['plex_data_folder'] + 'Plex Media Server\\Metadata\\TV Shows\\' + hash[0] + '\\' + hash[1:len(hash)] + '.bundle\\Contents\\' + indexer + '\\' + category + '\\' + imgName
         webImgPath = 'images/' + imgName + '.png'
+        webImgFullPath = config['web_domain'] + config['web_path'] + '/images/' + imgName + '.png'
         emailImgPath = 'cid:Image_' + imgName
         img = config['web_folder'] + config['web_path'] + '\\images\\' + imgName + '.png'
         shutil.copy(imgLocation, img)
-        imgNames['Image_' + imgName] = imgLocation
+        if (config['web_enabled'] == False or config['email_use_web_images'] == False):
+          imgNames['Image_' + imgName] = imgLocation
       else:
         imgName = thumb[thumb.rfind('/') + 1:thumb.rfind('.')]
         imgLocation = thumb
         webImgPath = thumb
+        webImgFullPath = thumb
         emailImgPath = thumb
+        
+      if (config['web_enabled'] and config['email_use_web_images']):
+        emailImgPath = webImgFullPath
       
       emailTVShows += '<table><tr width="100%">'
       emailTVShows += '<td width="200px"><img class="featurette-image img-responsive pull-left" src="' + emailImgPath +'" width="154px"></td>'
@@ -353,15 +365,21 @@ with con:
         else:
           imgLocation = config['plex_data_folder'] + 'Plex Media Server\\Metadata\\TV Shows\\' + hash[0] + '\\' + hash[1:len(hash)] + '.bundle\\Contents\\' + indexer + '\\' + category + '\\' + imgName
         webImgPath = 'images/' + imgName + '.png'
+        webImgFullPath = config['web_domain'] + config['web_path'] + '/images/' + imgName + '.png'
         emailImgPath = 'cid:Image_' + imgName
         img = config['web_folder'] + config['web_path'] + '\\images\\' + imgName + '.png'
         shutil.copy(imgLocation, img)
-        imgNames['Image_' + imgName] = imgLocation
+        if (config['web_enabled'] == False or config['email_use_web_images'] == False):
+          imgNames['Image_' + imgName] = imgLocation
       else:
         imgName = thumb[thumb.rfind('/') + 1:thumb.rfind('.')]
         imgLocation = thumb
         webImgPath = thumb
+        webImgFullPath = thumb
         emailImgPath = thumb
+        
+      if (config['web_enabled'] and config['email_use_web_images']):
+        emailImgPath = webImgFullPath
       
       emailTVSeasons += '<table><tr width="100%">'
       emailTVSeasons += '<td width="200px"><img class="featurette-image img-responsive pull-left" src="' + emailImgPath +'" width="154px"></td>'
@@ -448,15 +466,21 @@ with con:
             imgName = thumb[thumb.index('_') + 1:len(thumb)]
             imgLocation = config['plex_data_folder'] + 'Plex Media Server\\Metadata\\TV Shows\\' + hash[0] + '\\' + hash[1:len(hash)] + '.bundle\\Contents\\' + indexer + '\\' + category + '\\' + imgName
           webImgPath = 'images/' + imgName + '.png'
+          webImgFullPath = config['web_domain'] + config['web_path'] + '/images/' + imgName + '.png'
           emailImgPath = 'cid:Image_' + imgName
           img = config['web_folder'] + config['web_path'] + '\\images\\' + imgName + '.png'
           shutil.copy(imgLocation, img)
-          imgNames['Image_' + imgName] = imgLocation
+          if (config['web_enabled'] == False or config['email_use_web_images'] == False):
+            imgNames['Image_' + imgName] = imgLocation
         else:
           imgName = thumb[thumb.rfind('/') + 1:thumb.rfind('.')]
           imgLocation = thumb
           webImgPath = thumb
+          webImgFullPath = thumb
           emailImgPath = thumb
+
+        if (config['web_enabled'] and config['email_use_web_images']):
+          emailImgPath = webImgFullPath
         
         emailTVEpisodes += '<table><tr width="100%">'
         emailTVEpisodes += '<td width="200px"><img class="featurette-image img-responsive pull-left" src="' + emailImgPath +'" width="154px"></td>'
@@ -552,7 +576,7 @@ with con:
       msg['To'] = ", ".join(TO)
 
       # Create the body of the message (a plain-text and an HTML version).
-      text = "Check out this week's new releases in Plex: http://www.jakewaldron.me/plexemail"
+      text = config['msg_email_teaser']
 
       # Record the MIME types of both parts - text/plain and text/html.
       part1 = MIMEText(text, 'plain')
