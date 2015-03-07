@@ -5,6 +5,7 @@ import json
 import operator
 import shutil
 import smtplib
+from collections import OrderedDict
 from datetime import date, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -16,7 +17,100 @@ def replaceConfigTokens():
       config[value] = config[value].replace('{past_day}', str((date.today() - timedelta(days=config['days_back_to_search'])).strftime(config['date_format'])))
       config[value] = config[value].replace('{current_day}', str(date.today().strftime(config['date_format'])))
       config[value] = config[value].replace('{website}', config['web_domain'] + config['web_path'])
-      
+      config[value] = config[value].replace('{path_sep}', os.path.sep)
+
+  if (config['plex_data_folder'] and config['plex_data_folder'].rfind(os.path.sep) < len(config['plex_data_folder']) - len(os.path.sep)):
+    config['plex_data_folder'] = config['plex_data_folder'] + os.path.sep
+    
+  if (config['web_folder'] and config['web_folder'].rfind(os.path.sep) < len(config['web_folder']) - len(os.path.sep)):
+    config['web_folder'] = config['web_folder'] + os.path.sep
+    
+  if ('movie_sort_1' not in config.keys() or config['movie_sort_1'] == ""):
+    config['movie_sort_1'] = 'rating'
+  if ('movie_sort_2' not in config.keys() or config['movie_sort_2'] == ""):
+    config['movie_sort_2'] = 'title_sort'
+    
+  if ('movie_sort_1_reverse' not in config.keys() or config['movie_sort_1_reverse'] == ""):
+    config['movie_sort_1_reverse'] = True
+  if ('movie_sort_2_reverse' not in config.keys() or config['movie_sort_2_reverse'] == ""):
+    config['movie_sort_2_reverse'] = False
+  if ('movie_sort_3_reverse' not in config.keys() or config['movie_sort_3_reverse'] == ""):
+    config['movie_sort_3_reverse'] = False
+    
+  if ('show_sort_1' not in config.keys() or config['show_sort_1'] == ""):
+    config['show_sort_1'] = 'title_sort'
+    
+  if ('show_sort_1_reverse' not in config.keys() or config['show_sort_1_reverse'] == ""):
+    config['show_sort_1_reverse'] = False
+  if ('show_sort_2_reverse' not in config.keys() or config['show_sort_2_reverse'] == ""):
+    config['show_sort_2_reverse'] = False
+  if ('show_sort_3_reverse' not in config.keys() or config['show_sort_3_reverse'] == ""):
+    config['show_sort_3_reverse'] = False
+    
+  if ('season_sort_1' not in config.keys() or config['season_sort_1'] == ""):
+    config['season_sort_1'] = 'title_sort'
+  if ('season_sort_2' not in config.keys() or config['season_sort_2'] == ""):
+    config['season_sort_2'] = 'index'
+    
+  if ('season_sort_1_reverse' not in config.keys() or config['season_sort_1_reverse'] == ""):
+    config['season_sort_1_reverse'] = False
+  if ('season_sort_2_reverse' not in config.keys() or config['season_sort_2_reverse'] == ""):
+    config['season_sort_2_reverse'] = False
+  if ('season_sort_3_reverse' not in config.keys() or config['season_sort_3_reverse'] == ""):
+    config['season_sort_3_reverse'] = False
+    
+  if ('episode_sort_1' not in config.keys() or config['episode_sort_1'] == ""):
+    config['episode_sort_1'] = 'show_title_sort'
+  if ('episode_sort_2' not in config.keys() or config['episode_sort_2'] == ""):
+    config['episode_sort_2'] = 'season_index'
+  if ('episode_sort_3' not in config.keys() or config['episode_sort_3'] == ""):
+    config['episode_sort_3'] = 'index'
+    
+  if ('episode_sort_1_reverse' not in config.keys() or config['episode_sort_1_reverse'] == ""):
+    config['episode_sort_1_reverse'] = False
+  if ('episode_sort_2_reverse' not in config.keys() or config['episode_sort_2_reverse'] == ""):
+    config['episode_sort_2_reverse'] = False
+  if ('episode_sort_3_reverse' not in config.keys() or config['episode_sort_3_reverse'] == ""):
+    config['episode_sort_3_reverse'] = False
+  
+def processImage(imageHash, thumb, mediaType, seasonIndex, episodeIndex):
+  thumbObj = {}
+  if (thumb.find('http://') >= 0):
+    thumbObj['webImgPath'] = thumb
+    thumbObj['emailImgPath'] = thumb  
+  else:
+    if (thumb.find('media://') >= 0):
+      thumb = thumb[7:len(thumb)]
+      imgName = thumb[thumb.rindex('/') + 1:thumb.rindex('.')] + hash
+      imgLocation = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Media' + os.path.sep + 'localhost' + os.path.sep + '' + thumb
+    else:
+      thumb = thumb[11:len(thumb)]
+      category = thumb[0:thumb.index('/')]
+      imgName = thumb[thumb.index('_') + 1:len(thumb)]
+      if (mediaType == 'movie'):
+        indexer = thumb[thumb.index('/') + 1:thumb.index('_')]
+        imgLocation = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Metadata' + os.path.sep + 'Movies' + os.path.sep + imageHash[0] + os.path.sep + imageHash[1:len(imageHash)] + '.bundle' + os.path.sep + 'Contents' + os.path.sep + indexer + os.path.sep + category + os.path.sep + imgName
+      elif (mediaType == 'show'):
+        indexer = thumb[thumb.index('/') + 1:thumb.index('_')]
+        imgLocation = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Metadata' + os.path.sep + 'TV Shows' + os.path.sep + imageHash[0] + os.path.sep + imageHash[1:len(imageHash)] + '.bundle' + os.path.sep + 'Contents' + os.path.sep + indexer + os.path.sep + category + os.path.sep + imgName
+      elif (mediaType == 'season'):
+        indexer = thumb[thumb.index('posters/') + 8:thumb.index('_')]
+        imgLocation = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Metadata' + os.path.sep + 'TV Shows' + os.path.sep + imageHash[0] + os.path.sep + imageHash[1:len(imageHash)] + '.bundle' + os.path.sep + 'Contents' + os.path.sep + indexer + os.path.sep + 'seasons' + os.path.sep + str(seasonIndex) + os.path.sep + 'posters' + os.path.sep + imgName
+      elif (mediaType == 'episode'):
+        indexer = thumb[thumb.index('thumbs/') + 7:thumb.index('_')]
+        imgLocation = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Metadata' + os.path.sep + 'TV Shows' + os.path.sep + imageHash[0] + os.path.sep + imageHash[1:len(imageHash)] + '.bundle' + os.path.sep + 'Contents' + os.path.sep + indexer + os.path.sep + 'seasons' + os.path.sep + str(seasonIndex) + os.path.sep + 'episodes' + os.path.sep + str(episodeIndex) + os.path.sep + 'thumbs' + os.path.sep + imgName
+    thumbObj['webImgPath'] = 'images/' + imgName + '.png'
+    webImgFullPath = config['web_domain'] + config['web_path'] + '/images/' + imgName + '.png'
+    img = config['web_folder'] + config['web_path'] + os.path.sep + 'images' + os.path.sep + imgName + '.png'
+    shutil.copy(imgLocation, img)
+    if (config['web_enabled'] and config['email_use_web_images']):
+      thumbObj['emailImgPath'] = webImgFullPath
+    else:
+      imgNames['Image_' + imgName] = imgLocation
+      thumbObj['emailImgPath'] = 'cid:Image_' + imgName
+    
+  return thumbObj
+        
 def containsnonasciicharacters(str):
   return not all(ord(c) < 128 for c in str)   
 
@@ -29,10 +123,10 @@ def addheader(message, headername, headervalue):
   return message
 
 config = {}
-execfile(os.path.dirname(os.path.realpath(sys.argv[0])) + '\\config.conf', config)
+execfile(os.path.dirname(os.path.realpath(sys.argv[0])) + os.path.sep + 'config.conf', config)
 replaceConfigTokens()
 
-DATABASE_FILE = config['plex_data_folder'] + 'Plex Media Server\\Plug-in Support\\Databases\\com.plexapp.plugins.library.db'
+DATABASE_FILE = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Plug-in Support' + os.path.sep + 'Databases' + os.path.sep + 'com.plexapp.plugins.library.db'
   
 con = sqlite3.connect(DATABASE_FILE)
 con.text_factory = str
@@ -227,116 +321,90 @@ with con:
       
       if (response[item]['metadata_type'] == 4):
         tvEpisodes[response[item]['id']] = response[item]
-    
-    for movie in (sorted(movies.items(), key=lambda t: (t[1]['rating'], t[1]['title_sort']), reverse=True)):
-      title = ''
-      if (movie[1]['original_title'] != ''):
-        title += movie[1]['original_title'] + ' AKA '
-      title += movie[1]['title']
-      hash = str(movie[1]['hash'])
-      thumb = movie[1]['user_thumb_url']
-      if (thumb.find('http://') < 0):
-        thumb = thumb[11:len(thumb)]
-        category = thumb[0:thumb.index('/')]
-        indexer = thumb[thumb.index('/') + 1:thumb.index('_')]
-        imgName = thumb[thumb.index('_') + 1:len(thumb)]
-        imgLocation = config['plex_data_folder'] + 'Plex Media Server\\Metadata\\Movies\\' + hash[0] + '\\' + hash[1:len(hash)] + '.bundle\\Contents\\' + indexer + '\\' + category + '\\' + imgName
-        webImgPath = 'images/' + imgName + '.png'
-        webImgFullPath = config['web_domain'] + config['web_path'] + '/images/' + imgName + '.png'
-        emailImgPath = 'cid:Image_' + imgName
-        img = config['web_folder'] + config['web_path'] + '\\images\\' + imgName + '.png'
-        shutil.copy(imgLocation, img)
-        if (config['web_enabled'] == False or config['email_use_web_images'] == False):
-          imgNames['Image_' + imgName] = imgLocation
-      else:
-        imgName = thumb[thumb.rfind('/') + 1:thumb.rfind('.')]
-        imgLocation = thumb
-        webImgPath = thumb
-        webImgFullPath = thumb
-        emailImgPath = thumb
         
-      if (config['web_enabled'] and config['email_use_web_images']):
-        emailImgPath = webImgFullPath
+    if ('movie_sort_3' in config and config['movie_sort_3'] != ''):
+      movies = OrderedDict(sorted(movies.iteritems(), key=lambda t: t[1][config['movie_sort_3']], reverse=config['movie_sort_3_reverse']))
+    if ('movie_sort_2' in config and config['movie_sort_2'] != ''):
+      movies = OrderedDict(sorted(movies.iteritems(), key=lambda t: t[1][config['movie_sort_2']], reverse=config['movie_sort_2_reverse']))
+    if ('movie_sort_1' in config and config['movie_sort_1'] != ''):
+      movies = OrderedDict(sorted(movies.iteritems(), key=lambda t: t[1][config['movie_sort_1']], reverse=config['movie_sort_1_reverse']))
+    
+    for movie in movies:
+      title = ''
+      if (movies[movie]['original_title'] != ''):
+        title += movies[movie]['original_title'] + ' AKA '
+      title += movies[movie]['title']
+      hash = str(movies[movie]['hash'])
+      imageInfo = {}
+      imageInfo['thumb'] = movies[movie]['user_thumb_url']
+      imageInfo = processImage(hash, imageInfo['thumb'], 'movie', 0, 0)
       
       emailMovies += '<table><tr width="100%">'
       emailMovies += '<td width="200px">'
-      if (imgName != ''):
-        emailMovies += '<img class="featurette-image img-responsive pull-left" src="' + emailImgPath +'" width="154px">'
+      if (imageInfo['emailImgPath'] and imageInfo['emailImgPath'] != ''):
+        emailMovies += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'] +'" width="154px">'
       emailMovies += '</td>'
       emailMovies += '<td><h2 class="featurette-heading">' + title + '</h2>'
-      if (movie[1]['tagline'] != ''):
-        emailMovies += '<p class="lead"><i>' + movie[1]['tagline'] + '</i></p>'
-      emailMovies += '<p class="lead">' + movie[1]['summary'] + '</p>'
-      if (movie[1]['duration']):
-        emailMovies += '<p class="lead">Runtime: ' + str(movie[1]['duration'] // 1000 // 60) + ' minutes</p>'
-      if (movie[1]['year']):
-        emailMovies += '<p class="lead">Release Year: ' + str(movie[1]['year']) + '</p>'
-      if (movie[1]['rating']):
-        emailMovies += '<p class="lead">Rating: ' + str(int(movie[1]['rating'] * 10)) + '%</p>'
+      if (movies[movie]['tagline'] != ''):
+        emailMovies += '<p class="lead"><i>' + movies[movie]['tagline'] + '</i></p>'
+      emailMovies += '<p class="lead">' + movies[movie]['summary'] + '</p>'
+      if (movies[movie]['duration']):
+        emailMovies += '<p class="lead">Runtime: ' + str(movies[movie]['duration'] // 1000 // 60) + ' minutes</p>'
+      if (movies[movie]['year']):
+        emailMovies += '<p class="lead">Release Year: ' + str(movies[movie]['year']) + '</p>'
+      if (movies[movie]['rating']):
+        emailMovies += '<p class="lead">Rating: ' + str(int(movies[movie]['rating'] * 10)) + '%</p>'
       emailMovies += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
       
       htmlMovies += '<div class="featurette" id="movies">'
-      htmlMovies += '<img class="featurette-image img-responsive pull-left" src="' + webImgPath + '" width="154px" height="218px">'
+      htmlMovies += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'] + '" width="154px" height="218px">'
       htmlMovies += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + title + '</h2>'
-      if (movie[1]['tagline'] != ''):
-        htmlMovies += '<p class="lead"><i>' + movie[1]['tagline'] + '</i></p>'
-      htmlMovies += '<p class="lead">' + movie[1]['summary'] + '</p>'
-      if (movie[1]['duration']):
-        htmlMovies += '<p class="lead">Runtime: ' + str(movie[1]['duration'] // 1000 // 60) + ' minutes</p>'
-      if (movie[1]['year']):
-        htmlMovies += '<p class="lead">Release Year: ' + str(movie[1]['year']) + '</p>'
-      if (movie[1]['rating']):
-        htmlMovies += '<p class="lead">Rating: ' + str(int(movie[1]['rating'] * 10)) + '%</p>'
+      if (movies[movie]['tagline'] != ''):
+        htmlMovies += '<p class="lead"><i>' + movies[movie]['tagline'] + '</i></p>'
+      htmlMovies += '<p class="lead">' + movies[movie]['summary'] + '</p>'
+      if (movies[movie]['duration']):
+        htmlMovies += '<p class="lead">Runtime: ' + str(movies[movie]['duration'] // 1000 // 60) + ' minutes</p>'
+      if (movies[movie]['year']):
+        htmlMovies += '<p class="lead">Release Year: ' + str(movies[movie]['year']) + '</p>'
+      if (movies[movie]['rating']):
+        htmlMovies += '<p class="lead">Rating: ' + str(int(movies[movie]['rating'] * 10)) + '%</p>'
       htmlMovies += '</div></div><br/>&nbsp;<br/>&nbsp;'
     
-    for show in (sorted(tvShows.items(), key=lambda t: (t[1]['title_sort']))):
+    if ('show_sort_3' in config and config['show_sort_3'] != ''):
+      tvShows = OrderedDict(sorted(tvShows.iteritems(), key=lambda t: t[1][config['show_sort_3']], reverse=config['show_sort_3_reverse']))
+    if ('show_sort_2' in config and config['show_sort_2'] != ''):
+      tvShows = OrderedDict(sorted(tvShows.iteritems(), key=lambda t: t[1][config['show_sort_2']], reverse=config['show_sort_2_reverse']))
+    if ('show_sort_1' in config and config['show_sort_1'] != ''):
+      tvShows = OrderedDict(sorted(tvShows.iteritems(), key=lambda t: t[1][config['show_sort_1']], reverse=config['show_sort_1_reverse']))
+    
+    for show in tvShows:
       title = ''
-      if (show[1]['original_title'] != ''):
-        title += show[1]['original_title'] + ' AKA '
-      title += show[1]['title']
-      hash = str(show[1]['hash'])
-      thumb = show[1]['user_thumb_url']
-      if (thumb.find('http://') < 0):
-        thumb = thumb[11:len(thumb)]
-        category = thumb[0:thumb.index('/')]
-        indexer = thumb[thumb.index('/') + 1:thumb.index('_')]
-        imgName = thumb[thumb.index('_') + 1:len(thumb)]
-        imgLocation = config['plex_data_folder'] + 'Plex Media Server\\Metadata\\TV Shows\\' + hash[0] + '\\' + hash[1:len(hash)] + '.bundle\\Contents\\' + indexer + '\\' + category + '\\' + imgName
-        webImgPath = 'images/' + imgName + '.png'
-        webImgFullPath = config['web_domain'] + config['web_path'] + '/images/' + imgName + '.png'
-        emailImgPath = 'cid:Image_' + imgName
-        img = config['web_folder'] + config['web_path'] + '\\images\\' + imgName + '.png'
-        shutil.copy(imgLocation, img)
-        if (config['web_enabled'] == False or config['email_use_web_images'] == False):
-          imgNames['Image_' + imgName] = imgLocation
-      else:
-        imgName = thumb[thumb.rfind('/') + 1:thumb.rfind('.')]
-        imgLocation = thumb
-        webImgPath = thumb
-        webImgFullPath = thumb
-        emailImgPath = thumb
-        
-      if (config['web_enabled'] and config['email_use_web_images']):
-        emailImgPath = webImgFullPath
+      if (tvShows[show]['original_title'] != ''):
+        title += tvShows[show]['original_title'] + ' AKA '
+      title += tvShows[show]['title']
+      hash = str(tvShows[show]['hash'])
+      imageInfo = {}
+      imageInfo['thumb'] = tvShows[show]['user_thumb_url']
+      imageInfo = processImage(hash, imageInfo['thumb'], 'show', 0, 0)
       
       emailTVShows += '<table><tr width="100%">'
-      emailTVShows += '<td width="200px"><img class="featurette-image img-responsive pull-left" src="' + emailImgPath +'" width="154px"></td>'
+      emailTVShows += '<td width="200px"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'] +'" width="154px"></td>'
       emailTVShows += '<td><h2 class="featurette-heading">' + title + '</h2>'
-      if (show[1]['tagline'] != ''):
-        emailTVShows += '<p class="lead"><i>' + show[1]['tagline'] + '</i></p>'
-      emailTVShows += '<p class="lead">' + show[1]['summary'] + '</p>'
-      if (show[1]['studio'] != ''):
-        emailTVShows += '<p class="lead">Network: ' + show[1]['studio'] + '</p>'
+      if (tvShows[show]['tagline'] != ''):
+        emailTVShows += '<p class="lead"><i>' + tvShows[show]['tagline'] + '</i></p>'
+      emailTVShows += '<p class="lead">' + tvShows[show]['summary'] + '</p>'
+      if (tvShows[show]['studio'] != ''):
+        emailTVShows += '<p class="lead">Network: ' + tvShows[show]['studio'] + '</p>'
       emailTVShows += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
       
       htmlTVShows += '<div class="featurette" id="shows">'
-      htmlTVShows += '<img class="featurette-image img-responsive pull-left" src="' + webImgPath + '" width="154px" height="218px">'
+      htmlTVShows += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'] + '" width="154px" height="218px">'
       htmlTVShows += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + title + '</h2>'
-      if (show[1]['tagline'] != ''):
-        htmlTVShows += '<p class="lead"><i>' + show[1]['tagline'] + '</i></p>'
-      htmlTVShows += '<p class="lead">' + show[1]['summary'] + '</p>'
-      if (show[1]['studio'] != ''):
-        htmlTVShows += '<p class="lead">Network: ' + show[1]['studio'] + '</p>'
+      if (tvShows[show]['tagline'] != ''):
+        htmlTVShows += '<p class="lead"><i>' + tvShows[show]['tagline'] + '</i></p>'
+      htmlTVShows += '<p class="lead">' + tvShows[show]['summary'] + '</p>'
+      if (tvShows[show]['studio'] != ''):
+        htmlTVShows += '<p class="lead">Network: ' + tvShows[show]['studio'] + '</p>'
       htmlTVShows += '</div></div><br/>&nbsp;<br/>&nbsp;'
     
     for season in tvSeasons:
@@ -360,61 +428,47 @@ with con:
         tvSeasons[season]['parent_thumb_url'] = row[13]
         tvSeasons[season]['studio'] = row[14]
           
-    for season in (sorted(tvSeasons.items(), key=lambda t: (t[1]['title_sort'], t[1]['index']))):
+    if ('season_sort_3' in config and config['season_sort_3'] != ''):
+      tvSeasons = OrderedDict(sorted(tvSeasons.iteritems(), key=lambda t: t[1][config['season_sort_3']], reverse=config['season_sort_3_reverse']))
+    if ('season_sort_2' in config and config['season_sort_2'] != ''):
+      tvSeasons = OrderedDict(sorted(tvSeasons.iteritems(), key=lambda t: t[1][config['season_sort_2']], reverse=config['season_sort_2_reverse']))
+    if ('season_sort_1' in config and config['season_sort_1'] != ''):
+      tvSeasons = OrderedDict(sorted(tvSeasons.iteritems(), key=lambda t: t[1][config['season_sort_1']], reverse=config['season_sort_1_reverse']))
+    
+    for season in tvSeasons:
       title = ''
-      if (season[1]['original_title'] != ''):
-        title += season[1]['original_title'] + ' AKA '
-      title += season[1]['title']
-      hash = str(season[1]['hash'])
-      thumb = season[1]['user_thumb_url']
-      if (thumb == ''):
-        thumb = season[1]['parent_thumb_url']
-      if (thumb.find('http://') < 0):
-        thumb = thumb[11:len(thumb)]
-        category = thumb[0:thumb.index('/')]
-        indexer = thumb[thumb.index('posters/') + 8:thumb.index('_')]
-        imgName = thumb[thumb.index('_') + 1:len(thumb)]
-        if (season[1]['user_thumb_url'] != ""):
-          imgLocation = config['plex_data_folder'] + 'Plex Media Server\\Metadata\\TV Shows\\' + hash[0] + '\\' + hash[1:len(hash)] + '.bundle\\Contents\\' + indexer + '\\' + category + '\\' + str(season[1]['index']) + '\\posters\\' + imgName
-        else:
-          imgLocation = config['plex_data_folder'] + 'Plex Media Server\\Metadata\\TV Shows\\' + hash[0] + '\\' + hash[1:len(hash)] + '.bundle\\Contents\\' + indexer + '\\' + category + '\\' + imgName
-        webImgPath = 'images/' + imgName + '.png'
-        webImgFullPath = config['web_domain'] + config['web_path'] + '/images/' + imgName + '.png'
-        emailImgPath = 'cid:Image_' + imgName
-        img = config['web_folder'] + config['web_path'] + '\\images\\' + imgName + '.png'
-        shutil.copy(imgLocation, img)
-        if (config['web_enabled'] == False or config['email_use_web_images'] == False):
-          imgNames['Image_' + imgName] = imgLocation
+      if (tvSeasons[season]['original_title'] != ''):
+        title += tvSeasons[season]['original_title'] + ' AKA '
+      title += tvSeasons[season]['title']
+      hash = str(tvSeasons[season]['hash'])
+      imageInfo = {}
+      if (tvSeasons[season]['user_thumb_url'] != ''):
+        imageInfo['thumb'] = tvSeasons[season]['user_thumb_url']
+        imageInfo = processImage(hash, imageInfo['thumb'], 'season', tvSeasons[season]['index'], 0)
       else:
-        imgName = thumb[thumb.rfind('/') + 1:thumb.rfind('.')]
-        imgLocation = thumb
-        webImgPath = thumb
-        webImgFullPath = thumb
-        emailImgPath = thumb
-        
-      if (config['web_enabled'] and config['email_use_web_images']):
-        emailImgPath = webImgFullPath
+        imageInfo['thumb'] = tvSeasons[season]['parent_thumb_url']
+        imageInfo = processImage(hash, imageInfo['thumb'], 'show', 0, 0)
       
       emailTVSeasons += '<table><tr width="100%">'
-      emailTVSeasons += '<td width="200px"><img class="featurette-image img-responsive pull-left" src="' + emailImgPath +'" width="154px"></td>'
+      emailTVSeasons += '<td width="200px"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'] +'" width="154px"></td>'
       emailTVSeasons += '<td><h2 class="featurette-heading">' + title + '</h2>'
-      emailTVSeasons += '<p class="lead"><b>Season ' + str(season[1]['index']) + '</b></p>'
-      if (season[1]['tagline'] != ''):
-        emailTVSeasons += '<p class="lead"><i>' + season[1]['tagline'] + '</i></p>'
-      emailTVSeasons += '<p class="lead">' + season[1]['summary'] + '</p>'
-      if (season[1]['studio'] != ''):
-        emailTVSeasons += '<p class="lead">Network: ' + season[1]['studio'] + '</p>'
+      emailTVSeasons += '<p class="lead"><b>Season ' + str(tvSeasons[season]['index']) + '</b></p>'
+      if (tvSeasons[season]['tagline'] != ''):
+        emailTVSeasons += '<p class="lead"><i>' + tvSeasons[season]['tagline'] + '</i></p>'
+      emailTVSeasons += '<p class="lead">' + tvSeasons[season]['summary'] + '</p>'
+      if (tvSeasons[season]['studio'] != ''):
+        emailTVSeasons += '<p class="lead">Network: ' + tvSeasons[season]['studio'] + '</p>'
       emailTVSeasons += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
       
       htmlTVSeasons += '<div class="featurette" id="shows">'
-      htmlTVSeasons += '<img class="featurette-image img-responsive pull-left" src="' + webImgPath + '" width="154px" height="218px">'
+      htmlTVSeasons += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'] + '" width="154px" height="218px">'
       htmlTVSeasons += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + title + '</h2>'
-      htmlTVSeasons += '<p class="lead"><b>Season ' + str(season[1]['index']) + '</b></p>'
-      if (season[1]['tagline'] != ''):
-        htmlTVSeasons += '<p class="lead"><i>' + season[1]['tagline'] + '</i></p>'
-      htmlTVSeasons += '<p class="lead">' + season[1]['summary'] + '</p>'
-      if (season[1]['studio'] != ''):
-        htmlTVSeasons += '<p class="lead">Network: ' + season[1]['studio'] + '</p>'
+      htmlTVSeasons += '<p class="lead"><b>Season ' + str(tvSeasons[season]['index']) + '</b></p>'
+      if (tvSeasons[season]['tagline'] != ''):
+        htmlTVSeasons += '<p class="lead"><i>' + tvSeasons[season]['tagline'] + '</i></p>'
+      htmlTVSeasons += '<p class="lead">' + tvSeasons[season]['summary'] + '</p>'
+      if (tvSeasons[season]['studio'] != ''):
+        htmlTVSeasons += '<p class="lead">Network: ' + tvSeasons[season]['studio'] + '</p>'
       htmlTVSeasons += '</div></div><br/>&nbsp;<br/>&nbsp;'
       
     for episode in tvEpisodes:
@@ -441,81 +495,55 @@ with con:
           tvEpisodes[episode]['show_thumb_url'] = row2[8]
           tvEpisodes[episode]['studio'] = row2[9]
           
-    for episode in (sorted(tvEpisodes.items(), key=lambda t: (t[1]['show_title_sort'], t[1]['season_index'], t[1]['index']))):
-      if (episode[1]['parent_id'] not in tvSeasons):
+    if ('episode_sort_3' in config and config['episode_sort_3'] != ''):
+      tvEpisodes = OrderedDict(sorted(tvEpisodes.iteritems(), key=lambda t: t[1][config['episode_sort_3']], reverse=config['episode_sort_3_reverse']))
+    if ('episode_sort_2' in config and config['episode_sort_2'] != ''):
+      tvEpisodes = OrderedDict(sorted(tvEpisodes.iteritems(), key=lambda t: t[1][config['episode_sort_2']], reverse=config['episode_sort_2_reverse']))
+    if ('episode_sort_1' in config and config['episode_sort_1'] != ''):
+      tvEpisodes = OrderedDict(sorted(tvEpisodes.iteritems(), key=lambda t: t[1][config['episode_sort_1']], reverse=config['episode_sort_1_reverse']))
+    
+    for episode in tvEpisodes:
+      if (tvEpisodes[episode]['parent_id'] not in tvSeasons):
         showTitle = ''
-        if (episode[1]['show_original_title'] != ''):
-          showTitle += episode[1]['show_original_title'] + ' AKA '
-        showTitle += episode[1]['show_title']
+        if (tvEpisodes[episode]['show_original_title'] != ''):
+          showTitle += tvEpisodes[episode]['show_original_title'] + ' AKA '
+        showTitle += tvEpisodes[episode]['show_title']
         title = ''
-        if (episode[1]['original_title'] != ''):
-          title += episode[1]['original_title'] + ' AKA '
-        title += episode[1]['title']
-        hash = str(episode[1]['hash'])
-        thumb = episode[1]['user_thumb_url']
-        if (thumb == ''):
-          thumb = episode[1]['season_thumb_url']
-        if (thumb == ''):
-          thumb = episode[1]['show_thumb_url']
-        if (thumb.find('http://') < 0):
-          if (episode[1]['user_thumb_url'] != "" and 'metadata://' in episode[1]['user_thumb_url']):
-            thumb = episode[1]['user_thumb_url']
-            thumb = thumb[11:len(thumb)]
-            category = thumb[0:thumb.index('/')]
-            indexer = thumb[thumb.index('thumbs/') + 7:thumb.index('_')]
-            imgName = thumb[thumb.index('_') + 1:len(thumb)]
-            imgLocation = config['plex_data_folder'] + 'Plex Media Server\\Metadata\\TV Shows\\' + hash[0] + '\\' + hash[1:len(hash)] + '.bundle\\Contents\\' + indexer + '\\seasons\\' + str(episode[1]['season_index']) + '\\episodes\\' + str(episode[1]['index']) + '\\thumbs\\' + imgName
-          elif (episode[1]['season_thumb_url'] != ""):
-            thumb = episode[1]['season_thumb_url']
-            thumb = thumb[11:len(thumb)]
-            category = thumb[0:thumb.index('/')]
-            indexer = thumb[thumb.index('posters/') + 8:thumb.index('_')]
-            imgName = thumb[thumb.index('_') + 1:len(thumb)]
-            imgLocation = config['plex_data_folder'] + 'Plex Media Server\\Metadata\\TV Shows\\' + hash[0] + '\\' + hash[1:len(hash)] + '.bundle\\Contents\\' + indexer + '\\seasons\\' + str(episode[1]['season_index']) + '\\posters\\' + imgName
-          else:
-            thumb = episode[1]['show_thumb_url']
-            thumb = thumb[11:len(thumb)]
-            category = thumb[0:thumb.index('/')]
-            indexer = thumb[thumb.index('posters/') + 8:thumb.index('_')]
-            imgName = thumb[thumb.index('_') + 1:len(thumb)]
-            imgLocation = config['plex_data_folder'] + 'Plex Media Server\\Metadata\\TV Shows\\' + hash[0] + '\\' + hash[1:len(hash)] + '.bundle\\Contents\\' + indexer + '\\' + category + '\\' + imgName
-          webImgPath = 'images/' + imgName + '.png'
-          webImgFullPath = config['web_domain'] + config['web_path'] + '/images/' + imgName + '.png'
-          emailImgPath = 'cid:Image_' + imgName
-          img = config['web_folder'] + config['web_path'] + '\\images\\' + imgName + '.png'
-          shutil.copy(imgLocation, img)
-          if (config['web_enabled'] == False or config['email_use_web_images'] == False):
-            imgNames['Image_' + imgName] = imgLocation
-        else:
-          imgName = thumb[thumb.rfind('/') + 1:thumb.rfind('.')]
-          imgLocation = thumb
-          webImgPath = thumb
-          webImgFullPath = thumb
-          emailImgPath = thumb
-
-        if (config['web_enabled'] and config['email_use_web_images']):
-          emailImgPath = webImgFullPath
+        if (tvEpisodes[episode]['original_title'] != ''):
+          title += tvEpisodes[episode]['original_title'] + ' AKA '
+        title += tvEpisodes[episode]['title']
+        hash = str(tvEpisodes[episode]['hash'])
+        imageInfo = {}
+        if (tvEpisodes[episode]['user_thumb_url'] != ''):
+          imageInfo['thumb'] = tvEpisodes[episode]['user_thumb_url']
+          imageInfo = processImage(hash, imageInfo['thumb'], 'episode', tvEpisodes[episode]['season_index'], tvEpisodes[episode]['index'])
+        elif (tvEpisodes[episode]['season_thumb_url'] != ''):
+          imageInfo['thumb'] = tvEpisodes[episode]['season_thumb_url']
+          imageInfo = processImage(hash, imageInfo['thumb'], 'season', tvEpisodes[episode]['season_index'], 0)
+        elif (tvEpisodes[episode]['show_thumb_url'] != ''):
+          imageInfo['thumb'] = tvEpisodes[episode]['show_thumb_url']
+          imageInfo = processImage(hash, imageInfo['thumb'], 'show', 0, 0)
         
         emailTVEpisodes += '<table><tr width="100%">'
-        emailTVEpisodes += '<td width="200px"><img class="featurette-image img-responsive pull-left" src="' + emailImgPath +'" width="154px"></td>'
+        emailTVEpisodes += '<td width="200px"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'] +'" width="154px"></td>'
         emailTVEpisodes += '<td><h2 class="featurette-heading">' + showTitle + '</h2>'
-        emailTVEpisodes += '<p class="lead"><i>S' + str(episode[1]['season_index']) + ' E' + str(episode[1]['index']) + ': ' + title + '</i></p>'
-        if (episode[1]['tagline'] != ''):
-          emailTVEpisodes += '<p class="lead"><i>' + episode[1]['tagline'] + '</i></p>'
-        emailTVEpisodes += '<p class="lead">' + episode[1]['summary'] + '</p>'
-        if (episode[1]['studio'] != ''):
-          emailTVEpisodes += '<p class="lead">Network: ' + episode[1]['studio'] + '</p>'
+        emailTVEpisodes += '<p class="lead"><i>S' + str(tvEpisodes[episode]['season_index']) + ' E' + str(tvEpisodes[episode]['index']) + ': ' + title + '</i></p>'
+        if (tvEpisodes[episode]['tagline'] != ''):
+          emailTVEpisodes += '<p class="lead"><i>' + tvEpisodes[episode]['tagline'] + '</i></p>'
+        emailTVEpisodes += '<p class="lead">' + tvEpisodes[episode]['summary'] + '</p>'
+        if (tvEpisodes[episode]['studio'] != ''):
+          emailTVEpisodes += '<p class="lead">Network: ' + tvEpisodes[episode]['studio'] + '</p>'
         emailTVEpisodes += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
         
         htmlTVEpisodes += '<div class="featurette" id="shows">'
-        htmlTVEpisodes += '<img class="featurette-image img-responsive pull-left" src="' + webImgPath + '" width="154px" height="218px">'
+        htmlTVEpisodes += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'] + '" width="154px" height="218px">'
         htmlTVEpisodes += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + showTitle + '</h2>'
-        htmlTVEpisodes += '<p class="lead"><i>S' + str(episode[1]['season_index']) + ' E' + str(episode[1]['index']) + ': ' + title + '</i></p>'
-        if (episode[1]['tagline'] != ''):
-          htmlTVEpisodes += '<p class="lead"><i>' + episode[1]['tagline'] + '</i></p>'
-        htmlTVEpisodes += '<p class="lead">' + episode[1]['summary'] + '</p>'
-        if (episode[1]['studio'] != ''):
-          htmlTVEpisodes += '<p class="lead">Network: ' + episode[1]['studio'] + '</p>'
+        htmlTVEpisodes += '<p class="lead"><i>S' + str(tvEpisodes[episode]['season_index']) + ' E' + str(tvEpisodes[episode]['index']) + ': ' + title + '</i></p>'
+        if (tvEpisodes[episode]['tagline'] != ''):
+          htmlTVEpisodes += '<p class="lead"><i>' + tvEpisodes[episode]['tagline'] + '</i></p>'
+        htmlTVEpisodes += '<p class="lead">' + tvEpisodes[episode]['summary'] + '</p>'
+        if (tvEpisodes[episode]['studio'] != ''):
+          htmlTVEpisodes += '<p class="lead">Network: ' + tvEpisodes[episode]['studio'] + '</p>'
         htmlTVEpisodes += '</div></div><br/>&nbsp;<br/>&nbsp;'
     
     emailText += emailMovies + '<br/>&nbsp;' + emailTVShows + '<br/>&nbsp;' + emailTVSeasons + '<br/>&nbsp;' + emailTVEpisodes + """
@@ -566,7 +594,7 @@ with con:
 </html>"""
 	
     if (config['web_enabled']):
-      with open(config['web_folder'] + config['web_path'] + '\\index.html', 'w') as text_file:
+      with open(config['web_folder'] + config['web_path'] + os.path.sep + 'index.html', 'w') as text_file:
         text_file.write(html)
       
     if (config['email_enabled']):      
