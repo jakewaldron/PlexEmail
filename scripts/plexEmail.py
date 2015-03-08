@@ -104,7 +104,7 @@ def processImage(imageHash, thumb, mediaType, seasonIndex, episodeIndex):
       
     if (config['web_enabled'] and config['email_use_web_images']):
       thumbObj['emailImgPath'] = webImgFullPath
-    else:
+    elif (os.path.isfile(imgLocation)):
       imgNames['Image_' + imgName] = imgLocation
       thumbObj['emailImgPath'] = 'cid:Image_' + imgName
       
