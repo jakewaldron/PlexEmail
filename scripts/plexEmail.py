@@ -99,15 +99,21 @@ def processImage(imageHash, thumb, mediaType, seasonIndex, episodeIndex):
       elif (mediaType == 'episode'):
         indexer = thumb[thumb.index('thumbs/') + 7:thumb.index('_')]
         imgLocation = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Metadata' + os.path.sep + 'TV Shows' + os.path.sep + imageHash[0] + os.path.sep + imageHash[1:len(imageHash)] + '.bundle' + os.path.sep + 'Contents' + os.path.sep + indexer + os.path.sep + 'seasons' + os.path.sep + str(seasonIndex) + os.path.sep + 'episodes' + os.path.sep + str(episodeIndex) + os.path.sep + 'thumbs' + os.path.sep + imgName
-    thumbObj['webImgPath'] = 'images/' + imgName + '.png'
     webImgFullPath = config['web_domain'] + config['web_path'] + '/images/' + imgName + '.png'
     img = config['web_folder'] + config['web_path'] + os.path.sep + 'images' + os.path.sep + imgName + '.png'
-    shutil.copy(imgLocation, img)
+      
     if (config['web_enabled'] and config['email_use_web_images']):
       thumbObj['emailImgPath'] = webImgFullPath
     else:
       imgNames['Image_' + imgName] = imgLocation
       thumbObj['emailImgPath'] = 'cid:Image_' + imgName
+      
+    if (os.path.isfile(fname)):
+      shutil.copy(imgLocation, img)
+      thumbObj['webImgPath'] = 'images/' + imgName + '.png'
+    else:
+      thumbObj['webImgPath'] = ''
+      thumbObj['emailImgPath'] = ''
     
   return thumbObj
         
@@ -357,7 +363,8 @@ with con:
       emailMovies += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
       
       htmlMovies += '<div class="featurette" id="movies">'
-      htmlMovies += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'] + '" width="154px" height="218px">'
+      if (imageInfo['webImgPath'] and imageInfo['webImgPath'] != ''):
+        htmlMovies += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'] + '" width="154px" height="218px">'
       htmlMovies += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + title + '</h2>'
       if (movies[movie]['tagline'] != ''):
         htmlMovies += '<p class="lead"><i>' + movies[movie]['tagline'] + '</i></p>'
