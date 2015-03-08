@@ -108,7 +108,7 @@ def processImage(imageHash, thumb, mediaType, seasonIndex, episodeIndex):
       imgNames['Image_' + imgName] = imgLocation
       thumbObj['emailImgPath'] = 'cid:Image_' + imgName
       
-    if (os.path.isfile(fname)):
+    if (os.path.isfile(imgLocation)):
       shutil.copy(imgLocation, img)
       thumbObj['webImgPath'] = 'images/' + imgName + '.png'
     else:
@@ -347,8 +347,7 @@ with con:
       
       emailMovies += '<table><tr width="100%">'
       emailMovies += '<td width="200px">'
-      if (imageInfo['emailImgPath'] and imageInfo['emailImgPath'] != ''):
-        emailMovies += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'] +'" width="154px">'
+      emailMovies += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'] +'" width="154px">'
       emailMovies += '</td>'
       emailMovies += '<td><h2 class="featurette-heading">' + title + '</h2>'
       if (movies[movie]['tagline'] != ''):
@@ -363,8 +362,7 @@ with con:
       emailMovies += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
       
       htmlMovies += '<div class="featurette" id="movies">'
-      if (imageInfo['webImgPath'] and imageInfo['webImgPath'] != ''):
-        htmlMovies += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'] + '" width="154px" height="218px">'
+      htmlMovies += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'] + '" width="154px" height="218px">'
       htmlMovies += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + title + '</h2>'
       if (movies[movie]['tagline'] != ''):
         htmlMovies += '<p class="lead"><i>' + movies[movie]['tagline'] + '</i></p>'
