@@ -16,7 +16,7 @@ This script aggregates all new TV and movie releases for the past x days and wri
 
 1. Python 2.7 - 32 bit - https://www.python.org/ftp/python/2.7.9/python-2.7.9.msi
 2. 32 bit DLL for SQLite version 3.8.8.3 - http://www.sqlite.org/2015/sqlite-dll-win32-x86-3080803.zip (Put this into the DLLs folder of the Python installation)
-3. If web reports are wanted, a web server (i.e. Wamp)
+3. If web reports are wanted, a web server (i.e. Wamp, Apache, etc.)
 
 
 ## Installation (Windows)
@@ -99,12 +99,14 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * web_enabled - Enable the creation of the web page
 * web_domain - Domain name of the web page
 * web_path - Path on the domain to the web page
+* web_delete_previous_images - True to delete all .jpg images in the web image folder prior to copying over current images
 
 #####Email
 * email_enabled - Enable the creation and sending of an email
 * email_individually - True to send out emails individually to each address in the email_to setting
 * email_to - Array of email addresses to send the email
 * email_from - Email address to send the email from
+* email_from_name - Friendly name of sender
 * email_smtp_address - SMTP address of the email service
 * email_smtp_port - SMTP port of the email service
 * email_username - SMTP authentication username
@@ -118,6 +120,16 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * msg_header1 - First header text
 * msg_header2 - Second header text
 * msg_header3 - Third header text.  Only used in the email
+* msg_top_link - Header link text to go to top of the page
+* msg_movies_link - Header link text to go to new movies
+* msg_shows_link - Header link text to go to new shows
+* msg_seasons_link - Header link text to go to new seasons
+* msg_episodes_link - Header link text to go to new episodes
+* msg_new_movies_header - Section header text for new movies
+* msg_new_shows_header - Section header text for new shows
+* msg_new_seasons_header - Section header text for new seasons
+* msg_new_episodes_header - Section header text for new episodes
+* msg_footer - Footer text at the bottom of the page
 
 #####Sorting
 * movie_sort_1 - Highest priority sort
@@ -147,6 +159,7 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * episode_sort_2_reverse - Reverse the default sort
 * episode_sort_3 - Third Priority sort
 * episode_sort_3_reverse - Reverse the default sort
+
 ## Screenshots
 
 ### Email

@@ -10,6 +10,8 @@ from datetime import date, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.MIMEImage import MIMEImage
+from email.header import Header
+from email.utils import formataddr
 
 def replaceConfigTokens():
   for value in config:
@@ -72,6 +74,13 @@ def replaceConfigTokens():
     config['episode_sort_2_reverse'] = False
   if ('episode_sort_3_reverse' not in config.keys() or config['episode_sort_3_reverse'] == ""):
     config['episode_sort_3_reverse'] = False
+
+def deleteImages():
+  folder = config['web_folder'] + config['web_path'] + os.path.sep + 'images' + os.path.sep
+  for file in os.listdir(folder):
+    print folder, file
+    if (file.endswith('.jpg')):
+      os.remove(folder + file)
   
 def processImage(imageHash, thumb, mediaType, seasonIndex, episodeIndex):
   thumbObj = {}
@@ -133,11 +142,8 @@ def sendMail(email):
   gmail_pwd = config['email_password']
   smtp_address = config['email_smtp_address']
   smtp_port = config['email_smtp_port']
-  FROM = config['email_from']
-  if (email != ''):
-    TO = email
-  else:
-    TO = config['email_to']
+  FROM = formataddr((str(Header(config['email_from_name'])), config['email_from'])) if ('email_from_name' in config) else config['email_from']
+  TO = email if (email != '') else config['email_to']
   SUBJECT = config['msg_email_subject']
 
   # Create message container - the correct MIME type is multipart/alternative.
@@ -173,7 +179,6 @@ def sendMail(email):
   msg.attach(plaintext)
   msg.attach(htmltext)
   msg['To'] = ", ".join(TO)
-  print msg['To']
   server = smtplib.SMTP(smtp_address, smtp_port) #or port 465 doesn't seem to work!
   server.ehlo()
   server.starttls()
@@ -297,22 +302,22 @@ with con:
                             <span class="icon-bar"></span>
                             <span class="icon-bar"></span>
                         </button>
-                        <a class="navbar-brand" href="#">What's New in Plex</a>
+                        <a class="navbar-brand" href="#">""" + config['msg_top_link'] + """</a>
                     </div>
                     <!-- Collect the nav links, forms, and other content for toggling -->
                     <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                         <ul class="nav navbar-nav">
                             <li>
-                                <a href="#movies-top">Movies</a>
+                                <a href="#movies-top">""" + config['msg_movies_link'] + """</a>
                             </li>
                             <li>
-                                <a href="#shows-top">TV Shows</a>
+                                <a href="#shows-top">""" + config['msg_shows_link'] + """</a>
                             </li>
                             <li>
-                                <a href="#seasons-top">TV Seasons</a>
+                                <a href="#seasons-top">""" + config['msg_seasons_link'] + """</a>
                             </li>
                             <li>
-                                <a href="#episodes-top">TV Episodes</a>
+                                <a href="#episodes-top">""" + config['msg_episodes_link'] + """</a>
                             </li>
                         </ul>
                     </div>
@@ -335,38 +340,40 @@ with con:
             <div class="container">"""
             
     emailMovies = """<div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
-          <h1 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">New Movies</h1>
+          <h1 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">""" + config['msg_new_movies_header'] + """</h1>
         </div><hr class="featurette-divider" id="movies-top"><br/>&nbsp;"""
     htmlMovies = """<hr class="featurette-divider" id="movies-top">
     <div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
-          <h2 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">New Movies</h2>
+          <h2 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">""" + config['msg_new_movies_header'] + """</h2>
         </div>"""
     emailTVShows = """<div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
-          <h1 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">New TV Shows</h1>
+          <h1 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">""" + config['msg_new_shows_header'] + """</h1>
         </div><hr class="featurette-divider" id="movies-top"><br/>&nbsp;"""
     htmlTVShows = """<hr class="featurette-divider" id="shows-top">
     <div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
-          <h2 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">New TV Shows</h2>
+          <h2 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">""" + config['msg_new_shows_header'] + """</h2>
         </div>"""
     emailTVSeasons = """<div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
-          <h1 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">New TV Seasons</h1>
+          <h1 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">""" + config['msg_new_seasons_header'] + """</h1>
         </div><hr class="featurette-divider" id="movies-top"><br/>&nbsp;"""
     htmlTVSeasons = """<hr class="featurette-divider" id="seasons-top">
     <div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
-          <h2 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">New TV Seasons</h2>
+          <h2 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">""" + config['msg_new_seasons_header'] + """</h2>
         </div>"""
     emailTVEpisodes = """<div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
-          <h1 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">New TV Episodes</h1>
+          <h1 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">""" + config['msg_new_episodes_header'] + """</h1>
         </div><hr class="featurette-divider" id="movies-top"><br/>&nbsp;"""
     htmlTVEpisodes = """<hr class="featurette-divider" id="episodes-top">
     <div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
-          <h2 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">New TV Episodes</h2>
+          <h2 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">""" + config['msg_new_episodes_header'] + """</h2>
         </div>"""
     movies = {}
     tvShows = {}
     tvSeasons = {}
     tvEpisodes = {}
     imgNames = {}
+    if (config['web_enabled'] and 'web_delete_previous_images' in config and config['web_delete_previous_images']):
+      deleteImages()
     for item in response:
       #Handle New Movies
       if (response[item]['metadata_type'] == 1):
@@ -633,7 +640,7 @@ with con:
         <footer>
             <div class="row">
                 <div class="col-lg-12">
-                    <p>Copyright &copy; Jake Waldron 2015</p>
+                    <p>""" + config['msg_footer'] + """</p>
                 </div>
             </div>
         </footer>
@@ -661,7 +668,6 @@ with con:
         if (config['email_individually']):
           for emailAdd in config['email_to']:
             email = [emailAdd]
-            print email
             sendMail(email)
             emailCount += 1
         else:
