@@ -99,8 +99,8 @@ def processImage(imageHash, thumb, mediaType, seasonIndex, episodeIndex):
       elif (mediaType == 'episode'):
         indexer = thumb[thumb.index('thumbs/') + 7:thumb.index('_')]
         imgLocation = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Metadata' + os.path.sep + 'TV Shows' + os.path.sep + imageHash[0] + os.path.sep + imageHash[1:len(imageHash)] + '.bundle' + os.path.sep + 'Contents' + os.path.sep + indexer + os.path.sep + 'seasons' + os.path.sep + str(seasonIndex) + os.path.sep + 'episodes' + os.path.sep + str(episodeIndex) + os.path.sep + 'thumbs' + os.path.sep + imgName
-    webImgFullPath = config['web_domain'] + config['web_path'] + '/images/' + imgName + '.png'
-    img = config['web_folder'] + config['web_path'] + os.path.sep + 'images' + os.path.sep + imgName + '.png'
+    webImgFullPath = config['web_domain'] + config['web_path'] + '/images/' + imgName + '.jpg'
+    img = config['web_folder'] + config['web_path'] + os.path.sep + 'images' + os.path.sep + imgName + '.jpg'
       
     if (config['web_enabled'] and config['email_use_web_images']):
       thumbObj['emailImgPath'] = webImgFullPath
@@ -110,7 +110,7 @@ def processImage(imageHash, thumb, mediaType, seasonIndex, episodeIndex):
       
     if (os.path.isfile(imgLocation)):
       shutil.copy(imgLocation, img)
-      thumbObj['webImgPath'] = 'images/' + imgName + '.png'
+      thumbObj['webImgPath'] = 'images/' + imgName + '.jpg'
     else:
       thumbObj['webImgPath'] = ''
       thumbObj['emailImgPath'] = ''
@@ -128,6 +128,59 @@ def addheader(message, headername, headervalue):
     message[headername] = headervalue    
   return message
 
+def sendMail(email):
+  gmail_user = config['email_username']
+  gmail_pwd = config['email_password']
+  smtp_address = config['email_smtp_address']
+  smtp_port = config['email_smtp_port']
+  FROM = config['email_from']
+  if (email != ''):
+    TO = email
+  else:
+    TO = config['email_to']
+  SUBJECT = config['msg_email_subject']
+
+  # Create message container - the correct MIME type is multipart/alternative.
+  msg = MIMEMultipart('alternative')
+  msg = addheader(msg, 'Subject', SUBJECT)
+  msg['From'] = FROM
+
+  # Create the body of the message (a plain-text and an HTML version).
+  text = config['msg_email_teaser']
+  
+  # Record the MIME types of both parts - text/plain and text/html.
+  if containsnonasciicharacters(emailText):
+    htmltext = MIMEText(emailText, 'html','utf-8')
+  else:
+    htmltext = MIMEText(emailText, 'html')    
+
+  if(containsnonasciicharacters(text)):
+    plaintext = MIMEText(text,'plain','utf-8') 
+  else:
+    plaintext = MIMEText(text,'plain')
+  
+  #Create image headers
+  for image in imgNames:
+    fp = open(imgNames[image], 'rb')
+    msgImage = MIMEImage(fp.read())
+    fp.close()
+    msgImage.add_header('Content-ID', '<' + image + '>')
+    msg.attach(msgImage)
+
+  # Attach parts into message container.
+  # According to RFC 2046, the last part of a multipart message, in this case
+  # the HTML message, is best and preferred.
+  msg.attach(plaintext)
+  msg.attach(htmltext)
+  msg['To'] = ", ".join(TO)
+  print msg['To']
+  server = smtplib.SMTP(smtp_address, smtp_port) #or port 465 doesn't seem to work!
+  server.ehlo()
+  server.starttls()
+  server.login(gmail_user, gmail_pwd)
+  server.sendmail(FROM, TO, msg.as_string())
+  server.close()
+    
 config = {}
 execfile(os.path.dirname(os.path.realpath(sys.argv[0])) + os.path.sep + 'config.conf', config)
 replaceConfigTokens()
@@ -603,57 +656,17 @@ with con:
         text_file.write(html)
       
     if (config['email_enabled']):      
-      gmail_user = config['email_username']
-      gmail_pwd = config['email_password']
-      smtp_address = config['email_smtp_address']
-      smtp_port = config['email_smtp_port']
-      FROM = config['email_from']
-      TO = config['email_to']
-      SUBJECT = config['msg_email_subject']
-
-      # Create message container - the correct MIME type is multipart/alternative.
-      msg = MIMEMultipart('alternative')
-      msg = addheader(msg, 'Subject', SUBJECT)
-      msg['From'] = FROM
-      msg['To'] = ", ".join(TO)
-
-      # Create the body of the message (a plain-text and an HTML version).
-      text = config['msg_email_teaser']
-      
-      # Record the MIME types of both parts - text/plain and text/html.
-      if containsnonasciicharacters(emailText):
-        htmltext = MIMEText(emailText, 'html','utf-8')
-      else:
-        htmltext = MIMEText(emailText, 'html')    
-
-      if(containsnonasciicharacters(text)):
-        plaintext = MIMEText(text,'plain','utf-8') 
-      else:
-        plaintext = MIMEText(text,'plain')
-      
-      #Create image headers
-      for image in imgNames:
-        fp = open(imgNames[image], 'rb')
-        msgImage = MIMEImage(fp.read())
-        fp.close()
-        msgImage.add_header('Content-ID', '<' + image + '>')
-        msg.attach(msgImage)
-
-      # Attach parts into message container.
-      # According to RFC 2046, the last part of a multipart message, in this case
-      # the HTML message, is best and preferred.
-      msg.attach(plaintext)
-      msg.attach(htmltext)
-
       try:
-          #server = smtplib.SMTP(SERVER) 
-          server = smtplib.SMTP(smtp_address, smtp_port) #or port 465 doesn't seem to work!
-          server.ehlo()
-          server.starttls()
-          server.login(gmail_user, gmail_pwd)
-          server.sendmail(FROM, TO, msg.as_string())
-          #server.quit()
-          server.close()
-          print 'successfully sent the mail'
+        emailCount = 0
+        if (config['email_individually']):
+          for emailAdd in config['email_to']:
+            email = [emailAdd]
+            print email
+            sendMail(email)
+            emailCount += 1
+        else:
+          sendMail('')
+          emailCount += 1
+        print 'successfully sent %s email(s)' % emailCount
       except:
-          print "failed to send mail"
+        print "failed to send email"
