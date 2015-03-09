@@ -5,7 +5,9 @@ Plex Email
 This script aggregates all new TV and movie releases for the past x days and writes to your web directory and sends out an email.
 
 ## Supported Environments
-* Windows
+* Windows - Tested
+* Linux - Tested
+* Mac
 
 ## Supported Email Protocols
 * SMTP
