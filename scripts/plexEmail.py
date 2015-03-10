@@ -242,15 +242,11 @@ with con:
 
             <p style="display:none;font-size:0;">""" + config['msg_email_teaser'] + """</p>
             <!-- Full Width Image Header -->
-            <header class="header-image" style="background: #272727;">
-                <div class="headline" style="background: #272727;  padding: 40px 0;">
-                    <div class="container" style="background: #272727;">
-                        <h1 style="width: 100%; text-align: center; background: #272727 !important; color: #F9AA03 !important;">""" + config['msg_header1'] + """</h1>
-                        <h2 style="width: 100%; text-align: center; background: #272727 !important; color: #9A9A9A !important;">""" + config['msg_header2'] + """</h2>
-                        <h2 style="width: 100%; text-align: center; background: #272727 !important; color: #9A9A9A !important;">""" + config['msg_header3'] + """</h2>
-                </div>
-                </div>
-            </header>
+                    <table width="100%" style="background: #272727;">
+                        <tr><td><h1 style="width: 100%; text-align: center; background: #272727 !important;"><font style="color: #F9AA03;">""" + config['msg_header1'] + """</font></h1></td></tr>
+                        <tr><td><h2 style="width: 100%; text-align: center; background: #272727 !important;"><font style="color: #9A9A9A;">""" + config['msg_header2'] + """</font></h2></td></tr>
+                        <tr><td><h2 style="width: 100%; text-align: center; background: #272727 !important;"><font style="color: #9A9A9A;">""" + config['msg_header3'] + """</font></h2></td></tr>
+                    </table>
 
             <!-- Page Content -->
             <div class="container">"""
@@ -340,28 +336,28 @@ with con:
             <div class="container">"""
             
     emailMovies = """<div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
-          <h1 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">""" + config['msg_new_movies_header'] + """</h1>
+          <h1 style="width: 100%; text-align: center; background: #FFF !important;"><font style="color: #F9AA03;">""" + config['msg_new_movies_header'] + """</font></h1>
         </div><hr class="featurette-divider" id="movies-top"><br/>&nbsp;"""
     htmlMovies = """<hr class="featurette-divider" id="movies-top">
     <div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
           <h2 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">""" + config['msg_new_movies_header'] + """</h2>
         </div>"""
     emailTVShows = """<div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
-          <h1 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">""" + config['msg_new_shows_header'] + """</h1>
+          <h1 style="width: 100%; text-align: center; background: #FFF !important;"><font style="color: #F9AA03;">""" + config['msg_new_shows_header'] + """</font></h1>
         </div><hr class="featurette-divider" id="movies-top"><br/>&nbsp;"""
     htmlTVShows = """<hr class="featurette-divider" id="shows-top">
     <div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
           <h2 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">""" + config['msg_new_shows_header'] + """</h2>
         </div>"""
     emailTVSeasons = """<div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
-          <h1 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">""" + config['msg_new_seasons_header'] + """</h1>
+          <h1 style="width: 100%; text-align: center; background: #FFF !important;"><font style="color: #F9AA03;">""" + config['msg_new_seasons_header'] + """</font></h1>
         </div><hr class="featurette-divider" id="movies-top"><br/>&nbsp;"""
     htmlTVSeasons = """<hr class="featurette-divider" id="seasons-top">
     <div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
           <h2 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">""" + config['msg_new_seasons_header'] + """</h2>
         </div>"""
     emailTVEpisodes = """<div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
-          <h1 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">""" + config['msg_new_episodes_header'] + """</h1>
+          <h1 style="width: 100%; text-align: center; background: #FFF !important;"><font style="color: #F9AA03;">""" + config['msg_new_episodes_header'] + """</font></h1>
         </div><hr class="featurette-divider" id="movies-top"><br/>&nbsp;"""
     htmlTVEpisodes = """<hr class="featurette-divider" id="episodes-top">
     <div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
