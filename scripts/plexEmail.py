@@ -406,8 +406,8 @@ with con:
       imageInfo = processImage(hash, imageInfo['thumb'], 'movie', 0, 0)
       
       emailMovies += '<table><tr width="100%">'
-      emailMovies += '<td width="200px">'
-      emailMovies += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'] +'" width="154px">'
+      emailMovies += '<td width="200">'
+      emailMovies += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'] +'" width="154">'
       emailMovies += '</td>'
       emailMovies += '<td><h2 class="featurette-heading">' + title + '</h2>'
       if (movies[movie]['tagline'] != ''):
@@ -453,7 +453,7 @@ with con:
       imageInfo = processImage(hash, imageInfo['thumb'], 'show', 0, 0)
       
       emailTVShows += '<table><tr width="100%">'
-      emailTVShows += '<td width="200px"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'] +'" width="154px"></td>'
+      emailTVShows += '<td width="200"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'] +'" width="154"></td>'
       emailTVShows += '<td><h2 class="featurette-heading">' + title + '</h2>'
       if (tvShows[show]['tagline'] != ''):
         emailTVShows += '<p class="lead"><i>' + tvShows[show]['tagline'] + '</i></p>'
@@ -515,7 +515,7 @@ with con:
         imageInfo = processImage(hash, imageInfo['thumb'], 'show', 0, 0)
       
       emailTVSeasons += '<table><tr width="100%">'
-      emailTVSeasons += '<td width="200px"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'] +'" width="154px"></td>'
+      emailTVSeasons += '<td width="200"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'] +'" width="154"></td>'
       emailTVSeasons += '<td><h2 class="featurette-heading">' + title + '</h2>'
       emailTVSeasons += '<p class="lead"><b>Season ' + str(tvSeasons[season]['index']) + '</b></p>'
       if (tvSeasons[season]['tagline'] != ''):
@@ -590,7 +590,7 @@ with con:
           imageInfo = processImage(hash, imageInfo['thumb'], 'show', 0, 0)
         
         emailTVEpisodes += '<table><tr width="100%">'
-        emailTVEpisodes += '<td width="200px"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'] +'" width="154px"></td>'
+        emailTVEpisodes += '<td width="200"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'] +'" width="154"></td>'
         emailTVEpisodes += '<td><h2 class="featurette-heading">' + showTitle + '</h2>'
         emailTVEpisodes += '<p class="lead"><i>S' + str(tvEpisodes[episode]['season_index']) + ' E' + str(tvEpisodes[episode]['index']) + ': ' + title + '</i></p>'
         if (tvEpisodes[episode]['tagline'] != ''):
