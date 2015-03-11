@@ -101,6 +101,14 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * web_path - Path on the domain to the web page
 * web_delete_previous_images - True to delete all .jpg images in the web image folder prior to copying over current images
 
+#####Image Upload - If this option is enabled, image hosting will be used for web and email
+
+##Cloudinary - Sign up for a free account at: http://cloudinary.com/
+* upload_use_cloudinary - Use Cloudinary image hosting
+* upload_cloudinary_cloud_name - Cloudinary cloud name
+* upload_cloudinary_api_key - Cloudinary api key
+* upload_cloudinary_api_secret - Cloudinary api secret
+
 #####Email
 * email_enabled - Enable the creation and sending of an email
 * email_individually - True to send out emails individually to each address in the email_to setting

@@ -5,6 +5,12 @@ import json
 import operator
 import shutil
 import smtplib
+import requests
+import base64
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
+from base64 import b64encode
 from collections import OrderedDict
 from datetime import date, timedelta
 from email.mime.multipart import MIMEMultipart
@@ -110,14 +116,22 @@ def processImage(imageHash, thumb, mediaType, seasonIndex, episodeIndex):
         imgLocation = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Metadata' + os.path.sep + 'TV Shows' + os.path.sep + imageHash[0] + os.path.sep + imageHash[1:len(imageHash)] + '.bundle' + os.path.sep + 'Contents' + os.path.sep + indexer + os.path.sep + 'seasons' + os.path.sep + str(seasonIndex) + os.path.sep + 'episodes' + os.path.sep + str(episodeIndex) + os.path.sep + 'thumbs' + os.path.sep + imgName
     webImgFullPath = config['web_domain'] + config['web_path'] + '/images/' + imgName + '.jpg'
     img = config['web_folder'] + config['web_path'] + os.path.sep + 'images' + os.path.sep + imgName + '.jpg'
-      
-    if (config['web_enabled'] and config['email_use_web_images']):
+    
+    cloudinaryURL = ''
+    if ('upload_use_cloudinary' in config and config['upload_use_cloudinary']):
+      thumbObj['emailImgPath'] = webImgFullPath
+      #imgurURL = uploadToImgur(imgLocation, imgName)
+      cloudinaryURL = uploadToCloudinary(imgLocation)
+    elif (config['web_enabled'] and config['email_use_web_images']):
       thumbObj['emailImgPath'] = webImgFullPath
     elif (os.path.isfile(imgLocation)):
       imgNames['Image_' + imgName] = imgLocation
       thumbObj['emailImgPath'] = 'cid:Image_' + imgName
       
-    if (os.path.isfile(imgLocation)):
+    if (cloudinaryURL != ''):
+      thumbObj['webImgPath'] = cloudinaryURL
+      thumbObj['emailImgPath'] = cloudinaryURL
+    elif (os.path.isfile(imgLocation)):
       shutil.copy(imgLocation, img)
       thumbObj['webImgPath'] = 'images/' + imgName + '.jpg'
     else:
@@ -125,7 +139,36 @@ def processImage(imageHash, thumb, mediaType, seasonIndex, episodeIndex):
       thumbObj['emailImgPath'] = ''
     
   return thumbObj
-        
+  
+def uploadToImgur(imgToUpload, nameOfUpload):
+  client_id = 'a0c7b089b62b220'
+  headers = {"Authorization": "Client-ID " + client_id}
+  url = "https://api.imgur.com/3/upload.json"
+  if (os.path.isfile(imgToUpload)):
+    response = requests.post(
+      url, 
+      headers = headers,
+      data = {
+        'image': b64encode(open(imgToUpload, 'rb').read()),
+        'type': 'base64',
+        'name': nameOfUpload + '.jpg',
+        'title': nameOfUpload
+      }
+    )
+    print response
+    print json.dumps(response.text)
+    data = json.loads(response.text)['data'];
+    return data['link']
+  else:
+    return ''
+      
+def uploadToCloudinary(imgToUpload):
+  if (os.path.isfile(imgToUpload)):
+    response = cloudinary.uploader.upload(imgToUpload)
+    return response['url']
+  else:
+    return ''
+    
 def containsnonasciicharacters(str):
   return not all(ord(c) < 128 for c in str)   
 
@@ -189,6 +232,13 @@ def sendMail(email):
 config = {}
 execfile(os.path.dirname(os.path.realpath(sys.argv[0])) + os.path.sep + 'config.conf', config)
 replaceConfigTokens()
+
+if ('upload_use_cloudinary' in config and config['upload_use_cloudinary']):
+  cloudinary.config( 
+    cloud_name = config['upload_cloudinary_cloud_name'],
+    api_key = config['upload_cloudinary_api_key'],
+    api_secret = config['upload_cloudinary_api_secret']
+  )
 
 DATABASE_FILE = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Plug-in Support' + os.path.sep + 'Databases' + os.path.sep + 'com.plexapp.plugins.library.db'
   
@@ -403,12 +453,12 @@ with con:
       
       emailMovies += '<table><tr width="100%">'
       emailMovies += '<td width="200">'
-      emailMovies += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'] +'" width="154">'
+      emailMovies += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154">'
       emailMovies += '</td>'
-      emailMovies += '<td><h2 class="featurette-heading">' + title + '</h2>'
+      emailMovies += '<td><h2 class="featurette-heading">' + title.decode('utf-8') + '</h2>'
       if (movies[movie]['tagline'] != ''):
-        emailMovies += '<p class="lead"><i>' + movies[movie]['tagline'] + '</i></p>'
-      emailMovies += '<p class="lead">' + movies[movie]['summary'] + '</p>'
+        emailMovies += '<p class="lead"><i>' + movies[movie]['tagline'].decode('utf-8') + '</i></p>'
+      emailMovies += '<p class="lead">' + movies[movie]['summary'].decode('utf-8') + '</p>'
       if (movies[movie]['duration']):
         emailMovies += '<p class="lead">Runtime: ' + str(movies[movie]['duration'] // 1000 // 60) + ' minutes</p>'
       if (movies[movie]['year']):
@@ -418,11 +468,11 @@ with con:
       emailMovies += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
       
       htmlMovies += '<div class="featurette" id="movies">'
-      htmlMovies += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'] + '" width="154px" height="218px">'
-      htmlMovies += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + title + '</h2>'
+      htmlMovies += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px">'
+      htmlMovies += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + title.decode('utf-8') + '</h2>'
       if (movies[movie]['tagline'] != ''):
-        htmlMovies += '<p class="lead"><i>' + movies[movie]['tagline'] + '</i></p>'
-      htmlMovies += '<p class="lead">' + movies[movie]['summary'] + '</p>'
+        htmlMovies += '<p class="lead"><i>' + movies[movie]['tagline'].decode('utf-8') + '</i></p>'
+      htmlMovies += '<p class="lead">' + movies[movie]['summary'].decode('utf-8') + '</p>'
       if (movies[movie]['duration']):
         htmlMovies += '<p class="lead">Runtime: ' + str(movies[movie]['duration'] // 1000 // 60) + ' minutes</p>'
       if (movies[movie]['year']):
@@ -449,23 +499,23 @@ with con:
       imageInfo = processImage(hash, imageInfo['thumb'], 'show', 0, 0)
       
       emailTVShows += '<table><tr width="100%">'
-      emailTVShows += '<td width="200"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'] +'" width="154"></td>'
-      emailTVShows += '<td><h2 class="featurette-heading">' + title + '</h2>'
+      emailTVShows += '<td width="200"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></td>'
+      emailTVShows += '<td><h2 class="featurette-heading">' + title.decode('utf-8') + '</h2>'
       if (tvShows[show]['tagline'] != ''):
-        emailTVShows += '<p class="lead"><i>' + tvShows[show]['tagline'] + '</i></p>'
-      emailTVShows += '<p class="lead">' + tvShows[show]['summary'] + '</p>'
+        emailTVShows += '<p class="lead"><i>' + tvShows[show]['tagline'].decode('utf-8') + '</i></p>'
+      emailTVShows += '<p class="lead">' + tvShows[show]['summary'].decode('utf-8') + '</p>'
       if (tvShows[show]['studio'] != ''):
-        emailTVShows += '<p class="lead">Network: ' + tvShows[show]['studio'] + '</p>'
+        emailTVShows += '<p class="lead">Network: ' + tvShows[show]['studio'].decode('utf-8') + '</p>'
       emailTVShows += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
       
       htmlTVShows += '<div class="featurette" id="shows">'
-      htmlTVShows += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'] + '" width="154px" height="218px">'
-      htmlTVShows += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + title + '</h2>'
+      htmlTVShows += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px">'
+      htmlTVShows += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + title.decode('utf-8') + '</h2>'
       if (tvShows[show]['tagline'] != ''):
-        htmlTVShows += '<p class="lead"><i>' + tvShows[show]['tagline'] + '</i></p>'
-      htmlTVShows += '<p class="lead">' + tvShows[show]['summary'] + '</p>'
+        htmlTVShows += '<p class="lead"><i>' + tvShows[show]['tagline'].decode('utf-8') + '</i></p>'
+      htmlTVShows += '<p class="lead">' + tvShows[show]['summary'].decode('utf-8') + '</p>'
       if (tvShows[show]['studio'] != ''):
-        htmlTVShows += '<p class="lead">Network: ' + tvShows[show]['studio'] + '</p>'
+        htmlTVShows += '<p class="lead">Network: ' + tvShows[show]['studio'].decode('utf-8') + '</p>'
       htmlTVShows += '</div></div><br/>&nbsp;<br/>&nbsp;'
     
     for season in tvSeasons:
@@ -511,25 +561,25 @@ with con:
         imageInfo = processImage(hash, imageInfo['thumb'], 'show', 0, 0)
       
       emailTVSeasons += '<table><tr width="100%">'
-      emailTVSeasons += '<td width="200"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'] +'" width="154"></td>'
-      emailTVSeasons += '<td><h2 class="featurette-heading">' + title + '</h2>'
+      emailTVSeasons += '<td width="200"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></td>'
+      emailTVSeasons += '<td><h2 class="featurette-heading">' + title.decode('utf-8') + '</h2>'
       emailTVSeasons += '<p class="lead"><b>Season ' + str(tvSeasons[season]['index']) + '</b></p>'
       if (tvSeasons[season]['tagline'] != ''):
-        emailTVSeasons += '<p class="lead"><i>' + tvSeasons[season]['tagline'] + '</i></p>'
-      emailTVSeasons += '<p class="lead">' + tvSeasons[season]['summary'] + '</p>'
+        emailTVSeasons += '<p class="lead"><i>' + tvSeasons[season]['tagline'].decode('utf-8') + '</i></p>'
+      emailTVSeasons += '<p class="lead">' + tvSeasons[season]['summary'].decode('utf-8') + '</p>'
       if (tvSeasons[season]['studio'] != ''):
-        emailTVSeasons += '<p class="lead">Network: ' + tvSeasons[season]['studio'] + '</p>'
+        emailTVSeasons += '<p class="lead">Network: ' + tvSeasons[season]['studio'].decode('utf-8') + '</p>'
       emailTVSeasons += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
       
       htmlTVSeasons += '<div class="featurette" id="shows">'
-      htmlTVSeasons += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'] + '" width="154px" height="218px">'
-      htmlTVSeasons += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + title + '</h2>'
+      htmlTVSeasons += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px">'
+      htmlTVSeasons += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + title.decode('utf-8') + '</h2>'
       htmlTVSeasons += '<p class="lead"><b>Season ' + str(tvSeasons[season]['index']) + '</b></p>'
       if (tvSeasons[season]['tagline'] != ''):
-        htmlTVSeasons += '<p class="lead"><i>' + tvSeasons[season]['tagline'] + '</i></p>'
-      htmlTVSeasons += '<p class="lead">' + tvSeasons[season]['summary'] + '</p>'
+        htmlTVSeasons += '<p class="lead"><i>' + tvSeasons[season]['tagline'].decode('utf-8') + '</i></p>'
+      htmlTVSeasons += '<p class="lead">' + tvSeasons[season]['summary'].decode('utf-8') + '</p>'
       if (tvSeasons[season]['studio'] != ''):
-        htmlTVSeasons += '<p class="lead">Network: ' + tvSeasons[season]['studio'] + '</p>'
+        htmlTVSeasons += '<p class="lead">Network: ' + tvSeasons[season]['studio'].decode('utf-8') + '</p>'
       htmlTVSeasons += '</div></div><br/>&nbsp;<br/>&nbsp;'
       
     for episode in tvEpisodes:
@@ -586,25 +636,25 @@ with con:
           imageInfo = processImage(hash, imageInfo['thumb'], 'show', 0, 0)
         
         emailTVEpisodes += '<table><tr width="100%">'
-        emailTVEpisodes += '<td width="200"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'] +'" width="154"></td>'
-        emailTVEpisodes += '<td><h2 class="featurette-heading">' + showTitle + '</h2>'
+        emailTVEpisodes += '<td width="200"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></td>'
+        emailTVEpisodes += '<td><h2 class="featurette-heading">' + showTitle.decode('utf-8') + '</h2>'
         emailTVEpisodes += '<p class="lead"><i>S' + str(tvEpisodes[episode]['season_index']) + ' E' + str(tvEpisodes[episode]['index']) + ': ' + title + '</i></p>'
         if (tvEpisodes[episode]['tagline'] != ''):
-          emailTVEpisodes += '<p class="lead"><i>' + tvEpisodes[episode]['tagline'] + '</i></p>'
-        emailTVEpisodes += '<p class="lead">' + tvEpisodes[episode]['summary'] + '</p>'
+          emailTVEpisodes += '<p class="lead"><i>' + tvEpisodes[episode]['tagline'].decode('utf-8') + '</i></p>'
+        emailTVEpisodes += '<p class="lead">' + tvEpisodes[episode]['summary'].decode('utf-8') + '</p>'
         if (tvEpisodes[episode]['studio'] != ''):
-          emailTVEpisodes += '<p class="lead">Network: ' + tvEpisodes[episode]['studio'] + '</p>'
+          emailTVEpisodes += '<p class="lead">Network: ' + tvEpisodes[episode]['studio'].decode('utf-8') + '</p>'
         emailTVEpisodes += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
         
         htmlTVEpisodes += '<div class="featurette" id="shows">'
-        htmlTVEpisodes += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'] + '" width="154px" height="218px">'
-        htmlTVEpisodes += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + showTitle + '</h2>'
+        htmlTVEpisodes += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px">'
+        htmlTVEpisodes += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + showTitle.decode('utf-8') + '</h2>'
         htmlTVEpisodes += '<p class="lead"><i>S' + str(tvEpisodes[episode]['season_index']) + ' E' + str(tvEpisodes[episode]['index']) + ': ' + title + '</i></p>'
         if (tvEpisodes[episode]['tagline'] != ''):
-          htmlTVEpisodes += '<p class="lead"><i>' + tvEpisodes[episode]['tagline'] + '</i></p>'
-        htmlTVEpisodes += '<p class="lead">' + tvEpisodes[episode]['summary'] + '</p>'
+          htmlTVEpisodes += '<p class="lead"><i>' + tvEpisodes[episode]['tagline'].decode('utf-8') + '</i></p>'
+        htmlTVEpisodes += '<p class="lead">' + tvEpisodes[episode]['summary'].decode('utf-8') + '</p>'
         if (tvEpisodes[episode]['studio'] != ''):
-          htmlTVEpisodes += '<p class="lead">Network: ' + tvEpisodes[episode]['studio'] + '</p>'
+          htmlTVEpisodes += '<p class="lead">Network: ' + tvEpisodes[episode]['studio'].decode('utf-8') + '</p>'
         htmlTVEpisodes += '</div></div><br/>&nbsp;<br/>&nbsp;'
     
     emailText += emailMovies + '<br/>&nbsp;' + emailTVShows + '<br/>&nbsp;' + emailTVSeasons + '<br/>&nbsp;' + emailTVEpisodes + """
@@ -656,7 +706,7 @@ with con:
 	
     if (config['web_enabled']):
       with open(config['web_folder'] + config['web_path'] + os.path.sep + 'index.html', 'w') as text_file:
-        text_file.write(html)
+        text_file.write(html.encode('utf-8'))
       
     if (config['email_enabled']):      
       try:
