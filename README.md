@@ -65,7 +65,7 @@ sudo virtualenv --python=/usr/local/bin/python2.7 pevenv
 4. Run the script with the new virtualenv python install
 
 ```
-~/plexemail/bin/python ~/plexemail/scripts/plexEmail.py
+~/plexemail/scripts/pevenv/bin/python ~/plexemail/scripts/plexEmail.py
 ```
 
 ## Config File
