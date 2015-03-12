@@ -20,7 +20,16 @@ from email.header import Header
 from email.utils import formataddr
 
 def replaceConfigTokens():    
-  ## The below code is for backwards compatibility  
+  ## The below code is for backwards compatibility
+  if ('msg_no_new_content' not in config):
+    config['msg_no_new_content'] = 'There have been no new additions to Plex from {past_day} through {current_day}.'
+    
+  if ('email_skip_if_no_additions' not in config):
+    config['email_skip_if_no_additions'] = False
+  
+  if ('web_skip_if_no_additions' not in config):
+    config['web_skip_if_no_additions'] = False
+    
   if ('date_days_back_to_search' not in config and 'days_back_to_search' in config):
     config['date_days_back_to_search'] = config['days_back_to_search']
     
@@ -72,6 +81,7 @@ def replaceConfigTokens():
   if ('episode_sort_3_reverse' not in config.keys() or config['episode_sort_3_reverse'] == ""):
     config['episode_sort_3_reverse'] = False
     
+  # The below code is replacing tokens
   for value in config:
     if (isinstance(config[value], str)):
       if ('date_use_hours' in config and config['date_use_hours']):
@@ -291,7 +301,13 @@ def createEmailHTML():
   if (seasonCount > 0):
     emailText += emailTVSeasons + '<br/>&nbsp;'
   if (episodeCount > 0):
-    emailText += emailTVEpisodes 
+    emailText += emailTVEpisodes
+    
+  if(not hasNewContent):
+    emailText += """<div class="headline" style="background: #FFF !important; padding-top: 50px !important; padding-bottom: 50px !important;">
+          <h2 style="width: 100%; text-align: center; background: #FFF !important;">""" + config['msg_no_new_content'] + """</h2>
+        </div>"""
+        
   emailText += """
             <!-- Footer -->
             <footer>
@@ -420,6 +436,11 @@ def createWebHTML():
   if (episodeCount > 0):
     htmlText += htmlTVEpisodes
     
+  if(not hasNewContent):
+    htmlText += """<div class="headline" style="background: #FFF !important; padding-top: 50px !important;">
+          <h2 style="width: 100%; text-align: center; background: #FFF !important;"><font style="color: #000000;">""" + config['msg_no_new_content'] + """</font></h2>
+        </div>"""
+    
   htmlText += """<hr class="featurette-divider">
           <!-- Footer -->
           <footer>
@@ -464,9 +485,10 @@ con.text_factory = str
 with con:    
     
     if ('date_use_hours' in config and config['date_use_hours']):
-      dateSearch = 'date(\'now\', \'-' + str(config['date_hours_back_to_search']) + ' hours\')'
+      dateSearch = 'datetime(\'now\', \'localtime\', \'-' + str(config['date_hours_back_to_search']) + ' hours\')'
     else:
-      dateSearch = 'date(\'now\', \'-' + str(config['date_days_back_to_search']) + ' days\')'
+      dateSearch = 'datetime(\'now\', \'localtime\', \'-' + str(config['date_days_back_to_search']) + ' days\')'
+
     cur = con.cursor()    
     cur.execute("SELECT id, parent_id, metadata_type, title, title_sort, original_title, rating, tagline, summary, content_rating, duration, user_thumb_url, tags_genre, tags_director, tags_star, year, hash, [index], studio FROM metadata_items WHERE added_at >= " + dateSearch + " AND metadata_type >= 1 AND metadata_type <= 4 ORDER BY title_sort;")
 
@@ -753,15 +775,25 @@ with con:
         if (tvEpisodes[episode]['studio'] != ''):
           htmlTVEpisodes += '<p class="lead">Network: ' + tvEpisodes[episode]['studio'].decode('utf-8') + '</p>'
         htmlTVEpisodes += '</div></div><br/>&nbsp;<br/>&nbsp;'
+
+    if (movieCount > 0 or showCount > 0 or seasonCount > 0 or episodeCount > 0):
+      hasNewContent = True
+    else:
+      hasNewContent = False
     
     emailHTML = createEmailHTML()
     webHTML = createWebHTML()
 	
-    if (config['web_enabled']):
+    if (config['web_enabled'] and (not config['web_skip_if_no_additions'] or hasNewContent)):
       with open(config['web_folder'] + config['web_path'] + os.path.sep + 'index.html', 'w') as text_file:
         text_file.write(webHTML.encode('utf-8'))
+        print 'Web page created successfully'
+    elif (not config['web_enabled']):
+      print 'Web page was not created because the option is disabled in the config file.'
+    else:
+      print 'Web page was not created because there were no new additions in the timeframe specified.'
       
-    if (config['email_enabled']):      
+    if (config['email_enabled'] and (not config['email_skip_if_no_additions'] or hasNewContent)):
       try:
         emailCount = 0
         if (config['email_individually']):
@@ -772,6 +804,10 @@ with con:
         else:
           sendMail('')
           emailCount += 1
-        print 'successfully sent %s email(s)' % emailCount
+        print 'Successfully sent %s email(s)' % emailCount
       except:
-        print "failed to send email"
+        print "Failed to send email(s)"
+    elif (config['email_enabled']):
+      print 'Emails were not sent because the option is disabled in the config file.'
+    else:
+      print 'Emails were not sent because there were no new additions in the timeframe specified.'

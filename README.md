@@ -102,6 +102,7 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * web_domain - Domain name of the web page
 * web_path - Path on the domain to the web page
 * web_delete_previous_images - True to delete all .jpg images in the web image folder prior to copying over current images
+* web_skip_if_no_additions - True to skip creating a web page if there are no new additions
 
 #####Image Upload - If this option is enabled, image hosting will be used for web and email
 
@@ -122,6 +123,7 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * email_username - SMTP authentication username
 * email_password - SMTP authentication password
 * email_use_web_images - Use images from the web server instead of attaching them directly to the email
+* email_skip_if_no_additions - True to skip sending emails if there are no new additions
 
 #####Messages
 * msg_email_teaser - Teaser text on the email
@@ -140,6 +142,7 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * msg_new_seasons_header - Section header text for new seasons
 * msg_new_episodes_header - Section header text for new episodes
 * msg_footer - Footer text at the bottom of the page
+* msg_no_new_content - Message to be displayed if no new content has been added
 
 #####Sorting
 * movie_sort_1 - Highest priority sort
