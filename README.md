@@ -93,7 +93,9 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 
 #####General
 * date_format - Format to use for the date
-* days_back_to_search - Number of days to search backwards
+* date_days_back_to_search - Number of days to search backwards
+* date_use_hours - Search back y hours instead of days (useful for 24 hours reports)
+* date_hours_back_to_search - Number of hours to search backwards
 
 #####Web
 * web_enabled - Enable the creation of the web page
