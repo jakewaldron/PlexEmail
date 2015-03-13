@@ -22,6 +22,21 @@ from email.utils import formataddr
 
 def replaceConfigTokens():    
   ## The below code is for backwards compatibility
+  if ('filter_show_movies' not in config):
+    config['filter_show_movies'] = True
+  
+  if ('filter_show_shows' not in config):
+    config['filter_show_shows'] = True
+    
+  if ('filter_show_seasons' not in config):
+    config['filter_show_seasons'] = True
+    
+  if ('filter_show_episodes' not in config):
+    config['filter_show_episodes'] = True
+  
+  if ('date_minutes_back_to_search' not in config):
+    config['date_minutes_back_to_search'] = 0
+  
   if ('msg_no_new_content' not in config):
     config['msg_no_new_content'] = 'There have been no new additions to Plex from {past_day} through {current_day}.'
     
@@ -85,18 +100,18 @@ def replaceConfigTokens():
   # The below code is replacing tokens
   for value in config:
     if (isinstance(config[value], str)):
-      if ('date_use_hours' in config and config['date_use_hours']):
-        config[value] = config[value].replace('{past_day}', str((date.today() - timedelta(hours=config['date_hours_back_to_search'])).strftime(config['date_format'])))
-      else:
-        config[value] = config[value].replace('{past_day}', str((date.today() - timedelta(days=config['date_days_back_to_search'])).strftime(config['date_format'])))
+      config[value] = config[value].replace('{past_day}', str((date.today() - timedelta(days=config['date_days_back_to_search'], hours=config['date_hours_back_to_search'], minutes=config['date_minutes_back_to_search'])).strftime(config['date_format'])))
       config[value] = config[value].replace('{current_day}', str(date.today().strftime(config['date_format'])))
       config[value] = config[value].replace('{website}', config['web_domain'] + config['web_path'])
       config[value] = config[value].replace('{path_sep}', os.path.sep)
 
-  if (config['plex_data_folder'] and config['plex_data_folder'].rfind(os.path.sep) < len(config['plex_data_folder']) - len(os.path.sep)):
+  if (config['plex_data_folder'].rfind(os.path.sep) < len(config['plex_data_folder']) - len(os.path.sep)):
     config['plex_data_folder'] = config['plex_data_folder'] + os.path.sep
     
-  if (config['web_folder'] and config['web_folder'].rfind(os.path.sep) < len(config['web_folder']) - len(os.path.sep)):
+  if (config['plex_data_folder'].find('Plex Media Server') >= 0):
+    config['plex_data_folder'] = config['plex_data_folder'][0:config['plex_data_folder'].find('Plex Media Server')]
+    
+  if (config['web_folder'].rfind(os.path.sep) < len(config['web_folder']) - len(os.path.sep)):
     config['web_folder'] = config['web_folder'] + os.path.sep
 
 def deleteImages():
@@ -304,13 +319,13 @@ def createEmailHTML():
             <!-- Page Content -->
             <div class="container">"""
             
-  if (movieCount > 0):
+  if (movieCount > 0 and config['filter_show_movies']):
     emailText += emailMovies + '<br/>&nbsp;'
-  if (showCount > 0):
+  if (showCount > 0 and config['filter_show_shows']):
     emailText += emailTVShows + '<br/>&nbsp;'
-  if (seasonCount > 0):
+  if (seasonCount > 0 and config['filter_show_seasons']):
     emailText += emailTVSeasons + '<br/>&nbsp;'
-  if (episodeCount > 0):
+  if (episodeCount > 0 and config['filter_show_episodes']):
     emailText += emailTVEpisodes
     
   if(not hasNewContent):
@@ -396,22 +411,22 @@ def createWebHTML():
                   <!-- Collect the nav links, forms, and other content for toggling -->
                   <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                       <ul class="nav navbar-nav">"""
-  if (movieCount > 0):
+  if (movieCount > 0 and config['filter_show_movies']):
     htmlText += """
                           <li>
                               <a href="#movies-top">""" + config['msg_movies_link'] + """</a>
                           </li>"""
-  if (showCount > 0):
+  if (showCount > 0 and config['filter_show_shows']):
     htmlText += """
                           <li>
                               <a href="#shows-top">""" + config['msg_shows_link'] + """</a>
                           </li>"""
-  if (seasonCount > 0):
+  if (seasonCount > 0 and config['filter_show_seasons']):
     htmlText += """
                           <li>
                               <a href="#seasons-top">""" + config['msg_seasons_link'] + """</a>
                           </li>"""
-  if (episodeCount > 0):
+  if (episodeCount > 0 and config['filter_show_episodes']):
     htmlText += """
                           <li>
                               <a href="#episodes-top">""" + config['msg_episodes_link'] + """</a>
@@ -437,13 +452,13 @@ def createWebHTML():
           <!-- Page Content -->
           <div class="container">"""
   
-  if (movieCount > 0):
+  if (movieCount > 0 and config['filter_show_movies']):
     htmlText += htmlMovies + '<br/>&nbsp;'
-  if (showCount > 0):
+  if (showCount > 0 and config['filter_show_shows']):
     htmlText += htmlTVShows + '<br/>&nbsp;'
-  if (seasonCount > 0):
+  if (seasonCount > 0 and config['filter_show_seasons']):
     htmlText += htmlTVSeasons + '<br/>&nbsp;'
-  if (episodeCount > 0):
+  if (episodeCount > 0 and config['filter_show_episodes']):
     htmlText += htmlTVEpisodes
     
   if(not hasNewContent):
@@ -506,15 +521,21 @@ if ('upload_use_cloudinary' in config and config['upload_use_cloudinary']):
 
 DATABASE_FILE = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Plug-in Support' + os.path.sep + 'Databases' + os.path.sep + 'com.plexapp.plugins.library.db'
   
+if (not os.path.isfile(DATABASE_FILE)):
+  print DATABASE_FILE + ' does not exist. Please make sure the plex_data_folder value is correct.'
+  sys.exit()
+  
 con = sqlite3.connect(DATABASE_FILE)
 con.text_factory = str
 
 with con:    
     
-    if ('date_use_hours' in config and config['date_use_hours']):
-      dateSearch = 'datetime(\'now\', \'localtime\', \'-' + str(config['date_hours_back_to_search']) + ' hours\')'
-    else:
-      dateSearch = 'datetime(\'now\', \'localtime\', \'-' + str(config['date_days_back_to_search']) + ' days\')'
+    #if ('date_use_hours' in config and config['date_use_hours']):
+      #dateSearch = 'datetime(\'now\', \'localtime\', \'-' + str(config['date_hours_back_to_search']) + ' hours\')'
+    #else:
+      #dateSearch = 'datetime(\'now\', \'localtime\', \'-' + str(config['date_days_back_to_search']) + ' days\')'
+      
+    dateSearch = 'datetime(\'now\', \'localtime\', \'-' + str(config['date_days_back_to_search']) + ' days\', \'-' + str(config['date_hours_back_to_search']) + ' hours\', \'-' + str(config['date_minutes_back_to_search']) + ' minutes\')'
 
     cur = con.cursor()    
     cur.execute("SELECT id, parent_id, metadata_type, title, title_sort, original_title, rating, tagline, summary, content_rating, duration, user_thumb_url, tags_genre, tags_director, tags_star, year, hash, [index], studio FROM metadata_items WHERE added_at >= " + dateSearch + " AND metadata_type >= 1 AND metadata_type <= 4 ORDER BY title_sort;")
@@ -803,7 +824,7 @@ with con:
           htmlTVEpisodes += '<p class="lead">Network: ' + tvEpisodes[episode]['studio'].decode('utf-8') + '</p>'
         htmlTVEpisodes += '</div></div><br/>&nbsp;<br/>&nbsp;'
 
-    if (movieCount > 0 or showCount > 0 or seasonCount > 0 or episodeCount > 0):
+    if ((movieCount > 0 and config['filter_show_movies']) or (showCount > 0 and config['filter_show_shows']) or (seasonCount > 0 and config['filter_show_seasons']) or (episodeCount > 0 and config['filter_show_episodes'])):
       hasNewContent = True
     else:
       hasNewContent = False

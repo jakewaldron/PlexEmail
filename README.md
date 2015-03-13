@@ -7,16 +7,17 @@ This script aggregates all new TV and movie releases for the past x days and wri
 ## Supported Environments
 * Windows - Tested
 * Linux - Tested
-* Mac
+* Mac - Tested
 
 ## Supported Email Protocols
 * SMTP
 
 ## Prerequisites
 
-1. Python 2.7 - 32 bit - https://www.python.org/ftp/python/2.7.9/python-2.7.9.msi
-2. 32 bit DLL for SQLite version 3.8.8.3 - http://www.sqlite.org/2015/sqlite-dll-win32-x86-3080803.zip (Put this into the DLLs folder of the Python installation)
-3. If web reports are wanted, a web server (i.e. Wamp, Apache, etc.)
+1. Python 2.7 - Windows: 32 bit - https://www.python.org/ftp/python/2.7.9/python-2.7.9.msi
+2. Windows - 32 bit DLL for SQLite version 3.8.8.3 - http://www.sqlite.org/2015/sqlite-dll-win32-x86-3080803.zip (Put this into the DLLs folder of the Python installation)
+3. Requests module for Python. pip install requests or download it here and put it in the LIb folder of your Python installation: https://pypi.python.org/packages/source/r/requests/requests-2.5.3.tar.gz#md5=23bf4fcc89ea8d353eb5353bb4a475b1
+4. If web reports are wanted, a web server (i.e. Wamp, Apache, etc.)
 
 
 ## Installation (Windows)
@@ -88,19 +89,6 @@ python plexEmail.py -c C:\files\plexEmailWeekly.conf
 
 The config file is in the scripts folder.  Before first run of the script, please update this file with your information.
 
-####Required Fields to Update:
-
-* plex_data_folder
-* web_folder
-* web_domain
-* web_path
-* email_to
-* email_from
-* email_smtp_address (gmail default)
-* email_smtp_port
-* email_username
-* email_password
-
 ####Field Explanations:
 
 #####Folder Paths
@@ -110,8 +98,8 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 #####General
 * date_format - Format to use for the date
 * date_days_back_to_search - Number of days to search backwards
-* date_use_hours - Search back y hours instead of days (useful for 24 hours reports)
 * date_hours_back_to_search - Number of hours to search backwards
+* date_minutes_back_to_search - Number of minutes to search backwards
 
 #####Web
 * web_enabled - Enable the creation of the web page
@@ -140,6 +128,12 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * email_password - SMTP authentication password
 * email_use_web_images - Use images from the web server instead of attaching them directly to the email
 * email_skip_if_no_additions - True to skip sending emails if there are no new additions
+
+#####Filtering
+* filter_show_movies - True to show recently added movies
+* filter_show_shows - True to show recently added TV shows
+* filter_show_seasons - True to show recently added TV seasons
+* filter_show_episodes - True to show recently added TV episodes
 
 #####Messages
 * msg_email_teaser - Teaser text on the email
