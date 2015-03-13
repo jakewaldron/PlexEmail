@@ -1,5 +1,6 @@
 import sqlite3
 import sys
+import argparse
 import os
 import json
 import operator
@@ -465,9 +466,26 @@ def createWebHTML():
     </html>"""
     
   return htmlText
-    
+
+#
+#
+#  Main Code
+#
+#
+
+parser = argparse.ArgumentParser(description='This script aggregates all new TV and movie releases for the past x days then writes to your web directory and sends out an email.')
+parser.add_argument('-c','--configfile', help='The path to a config file to be used in the running of this instance of the script.', default=os.path.dirname(os.path.realpath(sys.argv[0])) + os.path.sep + 'config.conf', required=False)
+args = vars(parser.parse_args())
+  
+if ('configfile' in args):
+  configFile = args['configfile']
+
+if (not os.path.isfile(configFile)):
+  print configFile + ' does not exist'
+  sys.exit()
+  
 config = {}
-execfile(os.path.dirname(os.path.realpath(sys.argv[0])) + os.path.sep + 'config.conf', config)
+execfile(configFile, config)
 replaceConfigTokens()
 
 if ('upload_use_cloudinary' in config and config['upload_use_cloudinary']):

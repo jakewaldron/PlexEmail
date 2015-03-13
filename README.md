@@ -68,6 +68,22 @@ sudo virtualenv --python=/usr/local/bin/python2.7 pevenv
 ~/plexemail/scripts/pevenv/bin/python ~/plexemail/scripts/plexEmail.py
 ```
 
+## Usage
+
+#### Normal Usage
+
+```
+python plexEmail.py
+```
+
+#### Alternate Usage
+
+Pass in an alternate config file.  For example the default config file sends out a daily email (using Cloudinary), while an alternate config file is set up for a weekly web page.
+
+```
+python plexEmail.py -c C:\files\plexEmailWeekly.conf
+```
+
 ## Config File
 
 The config file is in the scripts folder.  Before first run of the script, please update this file with your information.
