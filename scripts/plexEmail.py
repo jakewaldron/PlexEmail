@@ -116,6 +116,15 @@ def processImage(imageHash, thumb, mediaType, seasonIndex, episodeIndex):
       thumb = thumb[7:len(thumb)]
       imgName = thumb[thumb.rindex('/') + 1:thumb.rindex('.')] + hash
       imgLocation = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Media' + os.path.sep + 'localhost' + os.path.sep + '' + thumb
+    elif (thumb.find('upload://') >= 0):
+      thumb = thumb[9:len(thumb)]
+      category = thumb[0:thumb.index('/')]
+      imgName = thumb[thumb.rindex('/') + 1:len(thumb)]
+      if (mediaType == 'movie'):
+        type = "Movies"
+      else:
+        type = "TV Shows"
+      imgLocation = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Metadata' + os.path.sep + type + os.path.sep + imageHash[0] + os.path.sep + imageHash[1:len(imageHash)] + '.bundle' + os.path.sep + 'Uploads' + os.path.sep + category + os.path.sep + imgName
     else:
       thumb = thumb[11:len(thumb)]
       category = thumb[0:thumb.index('/')]
@@ -775,7 +784,7 @@ with con:
         emailTVEpisodes += '<table><tr width="100%">'
         emailTVEpisodes += '<td width="200"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></td>'
         emailTVEpisodes += '<td><h2 class="featurette-heading">' + showTitle.decode('utf-8') + '</h2>'
-        emailTVEpisodes += '<p class="lead"><i>S' + str(tvEpisodes[episode]['season_index']) + ' E' + str(tvEpisodes[episode]['index']) + ': ' + title + '</i></p>'
+        emailTVEpisodes += '<p class="lead"><i>S' + str(tvEpisodes[episode]['season_index']) + ' E' + str(tvEpisodes[episode]['index']) + ': ' + title.decode('utf-8') + '</i></p>'
         if (tvEpisodes[episode]['tagline'] != ''):
           emailTVEpisodes += '<p class="lead"><i>' + tvEpisodes[episode]['tagline'].decode('utf-8') + '</i></p>'
         emailTVEpisodes += '<p class="lead">' + tvEpisodes[episode]['summary'].decode('utf-8') + '</p>'
@@ -786,7 +795,7 @@ with con:
         htmlTVEpisodes += '<div class="featurette" id="shows">'
         htmlTVEpisodes += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px">'
         htmlTVEpisodes += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + showTitle.decode('utf-8') + '</h2>'
-        htmlTVEpisodes += '<p class="lead"><i>S' + str(tvEpisodes[episode]['season_index']) + ' E' + str(tvEpisodes[episode]['index']) + ': ' + title + '</i></p>'
+        htmlTVEpisodes += '<p class="lead"><i>S' + str(tvEpisodes[episode]['season_index']) + ' E' + str(tvEpisodes[episode]['index']) + ': ' + title.decode('utf-8') + '</i></p>'
         if (tvEpisodes[episode]['tagline'] != ''):
           htmlTVEpisodes += '<p class="lead"><i>' + tvEpisodes[episode]['tagline'].decode('utf-8') + '</i></p>'
         htmlTVEpisodes += '<p class="lead">' + tvEpisodes[episode]['summary'].decode('utf-8') + '</p>'
