@@ -169,16 +169,17 @@ def processImage(imageHash, thumb, mediaType, seasonIndex, episodeIndex):
     elif (os.path.isfile(imgLocation)):
       imgNames['Image_' + imgName] = imgLocation
       thumbObj['emailImgPath'] = 'cid:Image_' + imgName
+    else:
+      thumbObj['emailImgPath'] = ''
       
     if (cloudinaryURL != ''):
       thumbObj['webImgPath'] = cloudinaryURL
       thumbObj['emailImgPath'] = cloudinaryURL
-    elif (os.path.isfile(imgLocation)):
+    elif (os.path.isfile(imgLocation) and config['web_enabled']):
       shutil.copy(imgLocation, img)
       thumbObj['webImgPath'] = 'images/' + imgName + '.jpg'
     else:
       thumbObj['webImgPath'] = ''
-      thumbObj['emailImgPath'] = ''
     
   return thumbObj
   
