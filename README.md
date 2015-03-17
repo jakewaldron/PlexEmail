@@ -134,6 +134,16 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * filter_show_shows - True to show recently added TV shows
 * filter_show_seasons - True to show recently added TV seasons
 * filter_show_episodes - True to show recently added TV episodes
+* filter_libraries - A list of library names to filter out - ['Home Videos', 'Private']
+* filter_sections_movies - Movie specific filters
+* filter_sections_TV - TV specific filters
+  * Possible fields: tagline, summary, content_rating, duration, year, rating, studio, tags_genre, tags_director, tags_star
+  * order - The order this field should appear for each title
+  * show - Whether or not this field should be shown for each title
+  * preText - The text that should be added before this field for each title
+  * postText - The text that should be added after this field for each title
+  * include - A list of values that are each title must match at least one to be shown
+  * exclude - A list of values that if the title matches any of, will not be shown
 
 #####Messages
 * msg_email_teaser - Teaser text on the email

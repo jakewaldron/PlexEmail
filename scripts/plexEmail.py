@@ -22,6 +22,15 @@ from email.utils import formataddr
 
 def replaceConfigTokens():    
   ## The below code is for backwards compatibility
+  if ('filter_sections_movies' not in config):
+    config['filter_include_sections_movies'] = {'tagline':{'order':1,'show':True,'preText':'<i>','postText':'</i>','include':[],'exclude':[]},'summary':{'order':2,'show':True,'preText':'','postText':'','include':[],'exclude':[]},'tags_genre':{'order':3,'show':True,'preText':'Genre(s): ','postText':'','include':[],'exclude':[]},'tags_director':{'order':4,'show':False,'preText':'Director: ','postText':'','include':[],'exclude':[]},'tags_star':{'order':5,'show':True,'preText':'Star(s): ','postText':'','include':[],'exclude':[]},'content_rating':{'order':6,'show':False,'preText':'ContentRating: ','postText':'','include':[],'exclude':[]},'duration':{'order':7,'show':True,'preText':'Runtime: ','postText':' minutes','include':[],'exclude':[]},'year':{'order':8,'show':True,'preText':'Year: ','postText':'','include':[],'exclude':[]},'studio':{'order':9,'show':False,'preText':'Studio: ','postText':'','include':[],'exclude':[]},'rating':{'order':10,'show':True,'preText':'Rating: ','postText':'%','include':[],'exclude':[]}}
+  
+  if ('filter_sections_TV' not in config):
+    config['filter_include_sections_TV'] = {'tagline':{'order':1,'show':True,'preText':'<i>','postText':'</i>','include':[],'exclude':[]},'summary':{'order':2,'show':True,'preText':'','postText':'','include':[],'exclude':[]},'tags_genre':{'order':3,'show':False,'preText':'Genre(s): ','postText':'','include':[],'exclude':[]},'tags_director':{'order':4,'show':False,'preText':'Director: ','postText':'','include':[],'exclude':[]},'tags_star':{'order':5,'show':False,'preText':'Star(s): ','postText':'','include':[],'exclude':[]},'content_rating':{'order':6,'show':False,'preText':'ContentRating: ','postText':'','include':[],'exclude':[]},'duration':{'order':7,'show':True,'preText':'Runtime: ','postText':' minutes','include':[],'exclude':[]},'year':{'order':8,'show':False,'preText':'Year: ','postText':'','include':[],'exclude':[]},'studio':{'order':9,'show':True,'preText':'Network: ','postText':'','include':[],'exclude':[]},'rating':{'order':10,'show':False,'preText':'Rating: ','postText':'%','include':[],'exclude':[]}}
+    
+  if ('web_only_save_images' not in config):
+    config['web_only_save_images'] = False
+    
   if ('filter_show_movies' not in config):
     config['filter_show_movies'] = True
   
@@ -113,11 +122,26 @@ def replaceConfigTokens():
     
   if (config['web_folder'].rfind(os.path.sep) < len(config['web_folder']) - len(os.path.sep)):
     config['web_folder'] = config['web_folder'] + os.path.sep
+    
+def convertToHumanReadable(valuesToConvert):
+  convertedValues = {}
+  for value in valuesToConvert:
+    convertedValues[value] = valuesToConvert[value]
+    convertedValues[value + '_filter'] = [valuesToConvert[value]]
+    if (not valuesToConvert[value]):
+      continue
+    if (value == 'duration'):
+      convertedValues[value] = str(valuesToConvert[value] // 1000 // 60)
+    elif (value == 'rating'):
+      convertedValues[value] = str(int(valuesToConvert[value] * 10))
+    elif (value == 'tags_genre' or value == 'tags_star' or value == 'tags_director'):
+      convertedValues[value + '_filter'] = valuesToConvert[value].split('|')
+      convertedValues[value] = valuesToConvert[value].replace('|', ', ')
+  return convertedValues
 
 def deleteImages():
   folder = config['web_folder'] + config['web_path'] + os.path.sep + 'images' + os.path.sep
   for file in os.listdir(folder):
-    print folder, file
     if (file.endswith('.jpg')):
       os.remove(folder + file)
   
@@ -500,10 +524,15 @@ def createWebHTML():
 
 parser = argparse.ArgumentParser(description='This script aggregates all new TV and movie releases for the past x days then writes to your web directory and sends out an email.')
 parser.add_argument('-c','--configfile', help='The path to a config file to be used in the running of this instance of the script.', default=os.path.dirname(os.path.realpath(sys.argv[0])) + os.path.sep + 'config.conf', required=False)
+parser.add_argument('-t','--test', help='Run this script in test mode - Sends email only to sender', action='store_true')
 args = vars(parser.parse_args())
+
+testMode = False
   
 if ('configfile' in args):
   configFile = args['configfile']
+if ('test' in args):
+  testMode = args['test']
 
 if (not os.path.isfile(configFile)):
   print configFile + ' does not exist'
@@ -529,21 +558,29 @@ if (not os.path.isfile(DATABASE_FILE)):
 con = sqlite3.connect(DATABASE_FILE)
 con.text_factory = str
 
-with con:    
-    
-    #if ('date_use_hours' in config and config['date_use_hours']):
-      #dateSearch = 'datetime(\'now\', \'localtime\', \'-' + str(config['date_hours_back_to_search']) + ' hours\')'
-    #else:
-      #dateSearch = 'datetime(\'now\', \'localtime\', \'-' + str(config['date_days_back_to_search']) + ' days\')'
+with con:
+    libraryFilter = ''
+    if (config['filter_libraries']):
+      cur = con.cursor()
+      cur.execute('SELECT id, name FROM library_sections;')
+      for row in cur:
+        if (row[1].lower() in (library.lower() for library in config['filter_libraries'])):
+          if (libraryFilter == ''):
+            libraryFilter = ' AND ('
+            libraryFilter += 'library_section_id != ' + str(row[0])
+          else:
+            libraryFilter += ' OR library_section_id != ' + str(row[0])
+      if (libraryFilter != ''):
+        libraryFilter += ') '
       
     dateSearch = 'datetime(\'now\', \'localtime\', \'-' + str(config['date_days_back_to_search']) + ' days\', \'-' + str(config['date_hours_back_to_search']) + ' hours\', \'-' + str(config['date_minutes_back_to_search']) + ' minutes\')'
 
     cur = con.cursor()    
-    cur.execute("SELECT id, parent_id, metadata_type, title, title_sort, original_title, rating, tagline, summary, content_rating, duration, user_thumb_url, tags_genre, tags_director, tags_star, year, hash, [index], studio FROM metadata_items WHERE added_at >= " + dateSearch + " AND metadata_type >= 1 AND metadata_type <= 4 ORDER BY title_sort;")
+    cur.execute("SELECT id, parent_id, metadata_type, title, title_sort, original_title, rating, tagline, summary, content_rating, duration, user_thumb_url, tags_genre, tags_director, tags_star, year, hash, [index], studio FROM metadata_items WHERE added_at >= " + dateSearch + " AND metadata_type >= 1 AND metadata_type <= 4 " + libraryFilter + " ORDER BY title_sort;")
 
     response = {};
     for row in cur:
-        response[row[0]] = {'id': row[0], 'parent_id': row[1], 'metadata_type': row[2], 'title': row[3], 'title_sort': row[4], 'original_title': row[5], 'rating': row[6], 'tagline': row[7], 'summary': row[8], 'content_rating': row[9], 'duration': row[10], 'user_thumb_url': row[11], 'tags_genre': row[12], 'tags_director': row[13], 'tags_star': row[14], 'year': row[15], 'hash': row[16], 'index': row[17], 'studio': row[18]}
+      response[row[0]] = {'id': row[0], 'parent_id': row[1], 'metadata_type': row[2], 'title': row[3], 'title_sort': row[4], 'original_title': row[5], 'rating': row[6], 'tagline': row[7], 'summary': row[8], 'content_rating': row[9], 'duration': row[10], 'user_thumb_url': row[11], 'tags_genre': row[12], 'tags_director': row[13], 'tags_star': row[14], 'year': row[15], 'hash': row[16], 'index': row[17], 'studio': row[18]}
             
     emailMovies = """<div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
           <h1 style="width: 100%; text-align: center; background: #FFF !important;"><font style="color: #F9AA03;">""" + config['msg_new_movies_header'] + """</font></h1>
@@ -606,9 +643,9 @@ with con:
       movies = OrderedDict(sorted(movies.iteritems(), key=lambda t: t[1][config['movie_sort_1']], reverse=config['movie_sort_1_reverse']))
     
     for movie in movies:
-      movieCount += 1
+      movies[movie] = convertToHumanReadable(movies[movie])
       title = ''
-      if (movies[movie]['original_title'] != ''):
+      if ('original_title' in movies[movie] and movies[movie]['original_title'] != ''):
         title += movies[movie]['original_title'] + ' AKA '
       title += movies[movie]['title']
       hash = str(movies[movie]['hash'])
@@ -616,35 +653,34 @@ with con:
       imageInfo['thumb'] = movies[movie]['user_thumb_url']
       imageInfo = processImage(hash, imageInfo['thumb'], 'movie', 0, 0)
       
-      emailMovies += '<table><tr width="100%">'
-      emailMovies += '<td width="200">'
-      emailMovies += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154">'
-      emailMovies += '</td>'
-      emailMovies += '<td><h2 class="featurette-heading">' + title.decode('utf-8') + '</h2>'
-      if (movies[movie]['tagline'] != ''):
-        emailMovies += '<p class="lead"><i>' + movies[movie]['tagline'].decode('utf-8') + '</i></p>'
-      emailMovies += '<p class="lead">' + movies[movie]['summary'].decode('utf-8') + '</p>'
-      if (movies[movie]['duration']):
-        emailMovies += '<p class="lead">Runtime: ' + str(movies[movie]['duration'] // 1000 // 60) + ' minutes</p>'
-      if (movies[movie]['year']):
-        emailMovies += '<p class="lead">Release Year: ' + str(movies[movie]['year']) + '</p>'
-      if (movies[movie]['rating']):
-        emailMovies += '<p class="lead">Rating: ' + str(int(movies[movie]['rating'] * 10)) + '%</p>'
-      emailMovies += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
+      skipItem = False
+      emailText = ''
+      htmlText = ''
       
-      htmlMovies += '<div class="featurette" id="movies">'
-      htmlMovies += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px">'
-      htmlMovies += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + title.decode('utf-8') + '</h2>'
-      if (movies[movie]['tagline'] != ''):
-        htmlMovies += '<p class="lead"><i>' + movies[movie]['tagline'].decode('utf-8') + '</i></p>'
-      htmlMovies += '<p class="lead">' + movies[movie]['summary'].decode('utf-8') + '</p>'
-      if (movies[movie]['duration']):
-        htmlMovies += '<p class="lead">Runtime: ' + str(movies[movie]['duration'] // 1000 // 60) + ' minutes</p>'
-      if (movies[movie]['year']):
-        htmlMovies += '<p class="lead">Release Year: ' + str(movies[movie]['year']) + '</p>'
-      if (movies[movie]['rating']):
-        htmlMovies += '<p class="lead">Rating: ' + str(int(movies[movie]['rating'] * 10)) + '%</p>'
-      htmlMovies += '</div></div><br/>&nbsp;<br/>&nbsp;'
+      emailText += '<table><tr width="100%">'
+      emailText += '<td width="200">'
+      emailText += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154">'
+      emailText += '</td>'
+      emailText += '<td><h2 class="featurette-heading">' + title.decode('utf-8') + '</h2>'
+      htmlText += '<div class="featurette" id="movies">'
+      htmlText += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px">'
+      htmlText += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + title.decode('utf-8') + '</h2>'
+      
+      sections = config['filter_sections_movies']
+      for section in sorted(sections.iteritems(), key=lambda t: t[1]['order']):
+        if (movies[movie][section[0]] in sections[section[0]]['exclude'] or len(set(movies[movie][section[0] + '_filter']).intersection(sections[section[0]]['exclude'])) > 0 or (sections[section[0]]['include'] and movies[movie][section[0]] not in sections[section[0]]['include'] and len(set(movies[movie][section[0] + '_filter']).intersection(sections[section[0]]['include'])) == 0)):
+          skipItem = True
+        if (sections[section[0]]['show'] and movies[movie][section[0]] and movies[movie][section[0]] != ''):
+          emailText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + str(movies[movie][section[0]]).decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
+          htmlText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + str(movies[movie][section[0]]).decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
+      
+      emailText += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
+      htmlText += '</div></div><br/>&nbsp;<br/>&nbsp;'
+      
+      if (not skipItem):
+        movieCount += 1
+        emailMovies += emailText
+        htmlMovies += htmlText
     
     if ('show_sort_3' in config and config['show_sort_3'] != ''):
       tvShows = OrderedDict(sorted(tvShows.iteritems(), key=lambda t: t[1][config['show_sort_3']], reverse=config['show_sort_3_reverse']))
@@ -654,7 +690,7 @@ with con:
       tvShows = OrderedDict(sorted(tvShows.iteritems(), key=lambda t: t[1][config['show_sort_1']], reverse=config['show_sort_1_reverse']))
     
     for show in tvShows:
-      showCount += 1
+      tvShows[show] = convertToHumanReadable(tvShows[show])
       title = ''
       if (tvShows[show]['original_title'] != ''):
         title += tvShows[show]['original_title'] + ' AKA '
@@ -664,25 +700,32 @@ with con:
       imageInfo['thumb'] = tvShows[show]['user_thumb_url']
       imageInfo = processImage(hash, imageInfo['thumb'], 'show', 0, 0)
       
-      emailTVShows += '<table><tr width="100%">'
-      emailTVShows += '<td width="200"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></td>'
-      emailTVShows += '<td><h2 class="featurette-heading">' + title.decode('utf-8') + '</h2>'
-      if (tvShows[show]['tagline'] != ''):
-        emailTVShows += '<p class="lead"><i>' + tvShows[show]['tagline'].decode('utf-8') + '</i></p>'
-      emailTVShows += '<p class="lead">' + tvShows[show]['summary'].decode('utf-8') + '</p>'
-      if (tvShows[show]['studio'] != ''):
-        emailTVShows += '<p class="lead">Network: ' + tvShows[show]['studio'].decode('utf-8') + '</p>'
-      emailTVShows += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
+      skipItem = False
+      emailText = ''
+      htmlText = ''
       
-      htmlTVShows += '<div class="featurette" id="shows">'
-      htmlTVShows += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px">'
-      htmlTVShows += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + title.decode('utf-8') + '</h2>'
-      if (tvShows[show]['tagline'] != ''):
-        htmlTVShows += '<p class="lead"><i>' + tvShows[show]['tagline'].decode('utf-8') + '</i></p>'
-      htmlTVShows += '<p class="lead">' + tvShows[show]['summary'].decode('utf-8') + '</p>'
-      if (tvShows[show]['studio'] != ''):
-        htmlTVShows += '<p class="lead">Network: ' + tvShows[show]['studio'].decode('utf-8') + '</p>'
-      htmlTVShows += '</div></div><br/>&nbsp;<br/>&nbsp;'
+      emailText += '<table><tr width="100%">'
+      emailText += '<td width="200"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></td>'
+      emailText += '<td><h2 class="featurette-heading">' + title.decode('utf-8') + '</h2>'
+      htmlText += '<div class="featurette" id="shows">'
+      htmlText += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px">'
+      htmlText += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + title.decode('utf-8') + '</h2>'      
+      
+      sections = config['filter_sections_TV']
+      for section in sorted(sections.iteritems(), key=lambda t: t[1]['order']):
+        if (tvShows[show][section[0]] in sections[section[0]]['exclude'] or len(set(tvShows[show][section[0] + '_filter']).intersection(sections[section[0]]['exclude'])) > 0 or (sections[section[0]]['include'] and tvShows[show][section[0]] not in sections[section[0]]['include'] and len(set(tvShows[show][section[0] + '_filter']).intersection(sections[section[0]]['include'])) == 0)):
+          skipItem = True
+        if (sections[section[0]]['show'] and tvShows[show][section[0]] and tvShows[show][section[0]] != ''):
+          emailText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + str(tvShows[show][section[0]]).decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
+          htmlText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + str(tvShows[show][section[0]]).decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
+      
+      emailText += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
+      htmlText += '</div></div><br/>&nbsp;<br/>&nbsp;'
+      
+      if (not skipItem):
+        showCount += 1
+        emailTVShows += emailText
+        htmlTVShows += htmlText
     
     for season in tvSeasons:
       cur2 = con.cursor()
@@ -713,7 +756,7 @@ with con:
       tvSeasons = OrderedDict(sorted(tvSeasons.iteritems(), key=lambda t: t[1][config['season_sort_1']], reverse=config['season_sort_1_reverse']))
     
     for season in tvSeasons:
-      seasonCount += 1
+      tvSeasons[season] = convertToHumanReadable(tvSeasons[season])
       title = ''
       if (tvSeasons[season]['original_title'] != ''):
         title += tvSeasons[season]['original_title'] + ' AKA '
@@ -727,27 +770,34 @@ with con:
         imageInfo['thumb'] = tvSeasons[season]['parent_thumb_url']
         imageInfo = processImage(hash, imageInfo['thumb'], 'show', 0, 0)
       
-      emailTVSeasons += '<table><tr width="100%">'
-      emailTVSeasons += '<td width="200"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></td>'
-      emailTVSeasons += '<td><h2 class="featurette-heading">' + title.decode('utf-8') + '</h2>'
-      emailTVSeasons += '<p class="lead"><b>Season ' + str(tvSeasons[season]['index']) + '</b></p>'
-      if (tvSeasons[season]['tagline'] != ''):
-        emailTVSeasons += '<p class="lead"><i>' + tvSeasons[season]['tagline'].decode('utf-8') + '</i></p>'
-      emailTVSeasons += '<p class="lead">' + tvSeasons[season]['summary'].decode('utf-8') + '</p>'
-      if (tvSeasons[season]['studio'] != ''):
-        emailTVSeasons += '<p class="lead">Network: ' + tvSeasons[season]['studio'].decode('utf-8') + '</p>'
-      emailTVSeasons += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
+      skipItem = False
+      emailText = ''
+      htmlText = ''
       
-      htmlTVSeasons += '<div class="featurette" id="shows">'
-      htmlTVSeasons += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px">'
-      htmlTVSeasons += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + title.decode('utf-8') + '</h2>'
-      htmlTVSeasons += '<p class="lead"><b>Season ' + str(tvSeasons[season]['index']) + '</b></p>'
-      if (tvSeasons[season]['tagline'] != ''):
-        htmlTVSeasons += '<p class="lead"><i>' + tvSeasons[season]['tagline'].decode('utf-8') + '</i></p>'
-      htmlTVSeasons += '<p class="lead">' + tvSeasons[season]['summary'].decode('utf-8') + '</p>'
-      if (tvSeasons[season]['studio'] != ''):
-        htmlTVSeasons += '<p class="lead">Network: ' + tvSeasons[season]['studio'].decode('utf-8') + '</p>'
-      htmlTVSeasons += '</div></div><br/>&nbsp;<br/>&nbsp;'
+      emailText += '<table><tr width="100%">'
+      emailText += '<td width="200"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></td>'
+      emailText += '<td><h2 class="featurette-heading">' + title.decode('utf-8') + '</h2>'
+      emailText += '<p class="lead"><b>Season ' + str(tvSeasons[season]['index']) + '</b></p>'
+      htmlText += '<div class="featurette" id="shows">'
+      htmlText += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px">'
+      htmlText += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + title.decode('utf-8') + '</h2>'
+      htmlText += '<p class="lead"><b>Season ' + str(tvSeasons[season]['index']) + '</b></p>'      
+      
+      sections = config['filter_sections_TV']
+      for section in sorted(sections.iteritems(), key=lambda t: t[1]['order']):
+        if (tvSeasons[season][section[0]] in sections[section[0]]['exclude'] or len(set(tvSeasons[season][section[0] + '_filter']).intersection(sections[section[0]]['exclude'])) > 0 or (sections[section[0]]['include'] and tvSeasons[season][section[0]] not in sections[section[0]]['include'] and len(set(tvSeasons[season][section[0] + '_filter']).intersection(sections[section[0]]['include'])) == 0)):
+          skipItem = True
+        if (sections[section[0]]['show'] and tvSeasons[season][section[0]] and tvSeasons[season][section[0]] != ''):
+          emailText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + str(tvSeasons[season][section[0]]).decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
+          htmlText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + str(tvSeasons[season][section[0]]).decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
+      
+      emailText += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
+      htmlText += '</div></div><br/>&nbsp;<br/>&nbsp;'
+      
+      if (not skipItem):
+        seasonCount += 1
+        emailTVSeasons += emailText
+        htmlTVSeasons += htmlText
       
     for episode in tvEpisodes:
       cur2 = con.cursor()
@@ -782,7 +832,7 @@ with con:
     
     for episode in tvEpisodes:
       if (tvEpisodes[episode]['parent_id'] not in tvSeasons):
-        episodeCount += 1
+        tvEpisodes[episode] = convertToHumanReadable(tvEpisodes[episode])
         showTitle = ''
         if (tvEpisodes[episode]['show_original_title'] != ''):
           showTitle += tvEpisodes[episode]['show_original_title'] + ' AKA '
@@ -803,27 +853,34 @@ with con:
           imageInfo['thumb'] = tvEpisodes[episode]['show_thumb_url']
           imageInfo = processImage(hash, imageInfo['thumb'], 'show', 0, 0)
         
-        emailTVEpisodes += '<table><tr width="100%">'
-        emailTVEpisodes += '<td width="200"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></td>'
-        emailTVEpisodes += '<td><h2 class="featurette-heading">' + showTitle.decode('utf-8') + '</h2>'
-        emailTVEpisodes += '<p class="lead"><i>S' + str(tvEpisodes[episode]['season_index']) + ' E' + str(tvEpisodes[episode]['index']) + ': ' + title.decode('utf-8') + '</i></p>'
-        if (tvEpisodes[episode]['tagline'] != ''):
-          emailTVEpisodes += '<p class="lead"><i>' + tvEpisodes[episode]['tagline'].decode('utf-8') + '</i></p>'
-        emailTVEpisodes += '<p class="lead">' + tvEpisodes[episode]['summary'].decode('utf-8') + '</p>'
-        if (tvEpisodes[episode]['studio'] != ''):
-          emailTVEpisodes += '<p class="lead">Network: ' + tvEpisodes[episode]['studio'].decode('utf-8') + '</p>'
-        emailTVEpisodes += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
+        skipItem = False
+        emailText = ''
+        htmlText = ''
+      
+        emailText += '<table><tr width="100%">'
+        emailText += '<td width="200"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></td>'
+        emailText += '<td><h2 class="featurette-heading">' + showTitle.decode('utf-8') + '</h2>'
+        emailText += '<p class="lead"><i>S' + str(tvEpisodes[episode]['season_index']) + ' E' + str(tvEpisodes[episode]['index']) + ': ' + title.decode('utf-8') + '</i></p>'
+        htmlText += '<div class="featurette" id="shows">'
+        htmlText += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px">'
+        htmlText += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + showTitle.decode('utf-8') + '</h2>'
+        htmlText += '<p class="lead"><i>S' + str(tvEpisodes[episode]['season_index']) + ' E' + str(tvEpisodes[episode]['index']) + ': ' + title.decode('utf-8') + '</i></p>'
         
-        htmlTVEpisodes += '<div class="featurette" id="shows">'
-        htmlTVEpisodes += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px">'
-        htmlTVEpisodes += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + showTitle.decode('utf-8') + '</h2>'
-        htmlTVEpisodes += '<p class="lead"><i>S' + str(tvEpisodes[episode]['season_index']) + ' E' + str(tvEpisodes[episode]['index']) + ': ' + title.decode('utf-8') + '</i></p>'
-        if (tvEpisodes[episode]['tagline'] != ''):
-          htmlTVEpisodes += '<p class="lead"><i>' + tvEpisodes[episode]['tagline'].decode('utf-8') + '</i></p>'
-        htmlTVEpisodes += '<p class="lead">' + tvEpisodes[episode]['summary'].decode('utf-8') + '</p>'
-        if (tvEpisodes[episode]['studio'] != ''):
-          htmlTVEpisodes += '<p class="lead">Network: ' + tvEpisodes[episode]['studio'].decode('utf-8') + '</p>'
-        htmlTVEpisodes += '</div></div><br/>&nbsp;<br/>&nbsp;'
+        sections = config['filter_sections_TV']
+        for section in sorted(sections.iteritems(), key=lambda t: t[1]['order']):
+          if (tvEpisodes[episode][section[0]] in sections[section[0]]['exclude'] or len(set(tvEpisodes[episode][section[0] + '_filter']).intersection(sections[section[0]]['exclude'])) > 0 or (sections[section[0]]['include'] and tvEpisodes[episode][section[0]] not in sections[section[0]]['include'] and len(set(tvEpisodes[episode][section[0] + '_filter']).intersection(sections[section[0]]['include'])) == 0)):
+            skipItem = True
+          if (sections[section[0]]['show'] and tvEpisodes[episode][section[0]] and tvEpisodes[episode][section[0]] != ''):
+            emailText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + str(tvEpisodes[episode][section[0]]).decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
+            htmlText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + str(tvEpisodes[episode][section[0]]).decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
+        
+        emailText += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
+        htmlText += '</div></div><br/>&nbsp;<br/>&nbsp;'
+        
+        if (not skipItem):
+          episodeCount += 1
+          emailTVEpisodes += emailText
+          htmlTVEpisodes += htmlText
 
     if ((movieCount > 0 and config['filter_show_movies']) or (showCount > 0 and config['filter_show_shows']) or (seasonCount > 0 and config['filter_show_seasons']) or (episodeCount > 0 and config['filter_show_episodes'])):
       hasNewContent = True
@@ -833,11 +890,11 @@ with con:
     emailHTML = createEmailHTML()
     webHTML = createWebHTML()
 	
-    if (config['web_enabled'] and (not config['web_skip_if_no_additions'] or hasNewContent)):
+    if (config['web_enabled'] and not config['web_only_save_images'] and (not config['web_skip_if_no_additions'] or hasNewContent)):
       with open(config['web_folder'] + config['web_path'] + os.path.sep + 'index.html', 'w') as text_file:
         text_file.write(webHTML.encode('utf-8'))
         print 'Web page created successfully'
-    elif (not config['web_enabled']):
+    elif (not config['web_enabled'] or (config['web_only_save_images'] and config['web_enabled'])):
       print 'Web page was not created because the option is disabled in the config file.'
     else:
       print 'Web page was not created because there were no new additions in the timeframe specified.'
@@ -845,7 +902,10 @@ with con:
     if (config['email_enabled'] and (not config['email_skip_if_no_additions'] or hasNewContent)):
       try:
         emailCount = 0
-        if (config['email_individually']):
+        if (testMode):
+          sendMail([config['email_from']])
+          emailCount += 1
+        elif (config['email_individually']):
           for emailAdd in config['email_to']:
             email = [emailAdd]
             sendMail(email)
@@ -856,7 +916,7 @@ with con:
         print 'Successfully sent %s email(s)' % emailCount
       except:
         print "Failed to send email(s)"
-    elif (config['email_enabled']):
+    elif (not config['email_enabled']):
       print 'Emails were not sent because the option is disabled in the config file.'
     else:
       print 'Emails were not sent because there were no new additions in the timeframe specified.'
