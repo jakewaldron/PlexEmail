@@ -22,6 +22,9 @@ from email.utils import formataddr
 
 def replaceConfigTokens():    
   ## The below code is for backwards compatibility
+  if ('filter_libraries' not in config):
+    config['filter_libraries'] = []
+  
   if ('filter_sections_movies' not in config):
     config['filter_include_sections_movies'] = {'tagline':{'order':1,'show':True,'preText':'<i>','postText':'</i>','include':[],'exclude':[]},'summary':{'order':2,'show':True,'preText':'','postText':'','include':[],'exclude':[]},'tags_genre':{'order':3,'show':True,'preText':'Genre(s): ','postText':'','include':[],'exclude':[]},'tags_director':{'order':4,'show':False,'preText':'Director: ','postText':'','include':[],'exclude':[]},'tags_star':{'order':5,'show':True,'preText':'Star(s): ','postText':'','include':[],'exclude':[]},'content_rating':{'order':6,'show':False,'preText':'ContentRating: ','postText':'','include':[],'exclude':[]},'duration':{'order':7,'show':True,'preText':'Runtime: ','postText':' minutes','include':[],'exclude':[]},'year':{'order':8,'show':True,'preText':'Year: ','postText':'','include':[],'exclude':[]},'studio':{'order':9,'show':False,'preText':'Studio: ','postText':'','include':[],'exclude':[]},'rating':{'order':10,'show':True,'preText':'Rating: ','postText':'%','include':[],'exclude':[]}}
   
