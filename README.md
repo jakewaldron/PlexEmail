@@ -36,38 +36,9 @@ This script aggregates all new TV and movie releases for the past x days and wri
 4. Update the config.conf file inside the scripts folder
 5. Schedule a weekly cron job to execute the plexEmail.py script
 
-#### Using virtualenv to not modify the current python installation
+## Installation (CentOS)
 
-1. Install virtualenv
-
-```
-sudo pip install virtualenv
-```
-
-2. Download and install python 2.7.9
-
-```
-cd ~/downloads
-wget https://www.python.org/ftp/python/2.7.9/Python-2.7.9.tgz
-tar -xvf Python-2.7.9.tgz
-cd Python-2.7.9
-./configure
-make
-sudo make altinstall
-```
-
-3. Make a new virtualenv
-
-```
-cd ~/plexemail/scripts (or wherever your scripts folder is for plexemail)
-sudo virtualenv --python=/usr/local/bin/python2.7 pevenv
-```
-
-4. Run the script with the new virtualenv python install
-
-```
-~/plexemail/scripts/pevenv/bin/python ~/plexemail/scripts/plexEmail.py
-```
+https://forums.plex.tv/index.php/topic/151619-plexemail-in-development/page-7#entry879778
 
 ## Usage
 
