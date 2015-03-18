@@ -150,12 +150,17 @@ def deleteImages():
   
 def processImage(imageHash, thumb, mediaType, seasonIndex, episodeIndex):
   thumbObj = {}
+  if (not thumb or thumb == ''):
+    thumbObj['webImgPath'] = ''
+    thumbObj['emailImgPath'] = ''
+    return thumbObj
+    
   if (thumb.find('http://') >= 0):
     thumbObj['webImgPath'] = thumb
     thumbObj['emailImgPath'] = thumb  
   else:
     if (thumb.find('media://') >= 0):
-      thumb = thumb[7:len(thumb)]
+      thumb = thumb[8:len(thumb)]
       imgName = thumb[thumb.rindex('/') + 1:thumb.rindex('.')] + hash
       imgLocation = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Media' + os.path.sep + 'localhost' + os.path.sep + '' + thumb
     elif (thumb.find('upload://') >= 0):
