@@ -22,6 +22,9 @@ from email.utils import formataddr
 
 def replaceConfigTokens():    
   ## The below code is for backwards compatibility
+  if ('filter_include_plex_web_link' not in config):
+    config['filter_include_plex_web_link'] = True
+    
   if ('filter_libraries' not in config):
     config['filter_libraries'] = []
   
@@ -134,7 +137,10 @@ def convertToHumanReadable(valuesToConvert):
     if (not valuesToConvert[value]):
       continue
     if (value == 'duration'):
-      convertedValues[value] = str(valuesToConvert[value] // 1000 // 60)
+      if (valuesToConvert['real_duration']):
+        convertedValues[value] = str(valuesToConvert['real_duration'] // 1000 // 60)
+      else:
+        convertedValues[value] = str(valuesToConvert[value] // 1000 // 60)
     elif (value == 'rating'):
       convertedValues[value] = str(int(valuesToConvert[value] * 10))
     elif (value == 'tags_genre' or value == 'tags_star' or value == 'tags_director'):
@@ -557,6 +563,18 @@ if ('upload_use_cloudinary' in config and config['upload_use_cloudinary']):
     api_secret = config['upload_cloudinary_api_secret']
   )
 
+plexWebLink = ''
+
+if (config['filter_include_plex_web_link']):
+  DLNA_DB_FILE = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Plug-in Support' + os.path.sep + 'Databases' + os.path.sep + 'com.plexapp.dlna.db'
+  
+  if (os.path.isfile(DLNA_DB_FILE)):
+    con = sqlite3.connect(DLNA_DB_FILE)
+    cur = con.cursor()    
+    cur.execute('SELECT machine_identifier FROM remote_servers WHERE url LIKE "http://127.0.0.1%";')
+    for row in cur:
+      plexWebLink = 'http://plex.tv/web/app#!/server/' + row[0] + '/details/%2Flibrary%2Fmetadata%2F'
+
 DATABASE_FILE = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Plug-in Support' + os.path.sep + 'Databases' + os.path.sep + 'com.plexapp.plugins.library.db'
   
 if (not os.path.isfile(DATABASE_FILE)):
@@ -584,11 +602,11 @@ with con:
     dateSearch = 'datetime(\'now\', \'localtime\', \'-' + str(config['date_days_back_to_search']) + ' days\', \'-' + str(config['date_hours_back_to_search']) + ' hours\', \'-' + str(config['date_minutes_back_to_search']) + ' minutes\')'
 
     cur = con.cursor()    
-    cur.execute("SELECT id, parent_id, metadata_type, title, title_sort, original_title, rating, tagline, summary, content_rating, duration, user_thumb_url, tags_genre, tags_director, tags_star, year, hash, [index], studio FROM metadata_items WHERE added_at >= " + dateSearch + " AND metadata_type >= 1 AND metadata_type <= 4 " + libraryFilter + " ORDER BY title_sort;")
+    cur.execute("SELECT MD.id, MD.parent_id, MD.metadata_type, MD.title, MD.title_sort, MD.original_title, MD.rating, MD.tagline, MD.summary, MD.content_rating, MD.duration, MD.user_thumb_url, MD.tags_genre, MD.tags_director, MD.tags_star, MD.year, MD.hash, MD.[index], MD.studio, ME.duration FROM metadata_items MD LEFT OUTER JOIN media_items ME ON MD.id = ME.metadata_item_id WHERE added_at >= " + dateSearch + " AND metadata_type >= 1 AND metadata_type <= 4 " + libraryFilter + " ORDER BY title_sort;")
 
     response = {};
     for row in cur:
-      response[row[0]] = {'id': row[0], 'parent_id': row[1], 'metadata_type': row[2], 'title': row[3], 'title_sort': row[4], 'original_title': row[5], 'rating': row[6], 'tagline': row[7], 'summary': row[8], 'content_rating': row[9], 'duration': row[10], 'user_thumb_url': row[11], 'tags_genre': row[12], 'tags_director': row[13], 'tags_star': row[14], 'year': row[15], 'hash': row[16], 'index': row[17], 'studio': row[18]}
+      response[row[0]] = {'id': row[0], 'parent_id': row[1], 'metadata_type': row[2], 'title': row[3], 'title_sort': row[4], 'original_title': row[5], 'rating': row[6], 'tagline': row[7], 'summary': row[8], 'content_rating': row[9], 'duration': row[10], 'user_thumb_url': row[11], 'tags_genre': row[12], 'tags_director': row[13], 'tags_star': row[14], 'year': row[15], 'hash': row[16], 'index': row[17], 'studio': row[18], 'real_duration': row[19]}
             
     emailMovies = """<div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
           <h1 style="width: 100%; text-align: center; background: #FFF !important;"><font style="color: #F9AA03;">""" + config['msg_new_movies_header'] + """</font></h1>
@@ -667,12 +685,12 @@ with con:
       
       emailText += '<table><tr width="100%">'
       emailText += '<td width="200">'
-      emailText += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154">'
+      emailText += '<a target="_blank" href="' + plexWebLink + str(movies[movie]['id']) + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a>'
       emailText += '</td>'
-      emailText += '<td><h2 class="featurette-heading">' + title.decode('utf-8') + '</h2>'
+      emailText += '<td><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + plexWebLink + str(movies[movie]['id']) + '">' + title.decode('utf-8') + '</a></h2>'
       htmlText += '<div class="featurette" id="movies">'
-      htmlText += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px">'
-      htmlText += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + title.decode('utf-8') + '</h2>'
+      htmlText += '<a target="_blank" href="' + plexWebLink + str(movies[movie]['id']) + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px"></a>'
+      htmlText += '<div style="margin-left: 200px;"><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + plexWebLink + str(movies[movie]['id']) + '">' + title.decode('utf-8') + '</a></h2>'
       
       sections = config['filter_sections_movies']
       for section in sorted(sections.iteritems(), key=lambda t: t[1]['order']):
@@ -713,11 +731,11 @@ with con:
       htmlText = ''
       
       emailText += '<table><tr width="100%">'
-      emailText += '<td width="200"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></td>'
-      emailText += '<td><h2 class="featurette-heading">' + title.decode('utf-8') + '</h2>'
+      emailText += '<td width="200"><a target="_blank" href="' + plexWebLink + str(tvShows[show]['id']) + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a></td>'
+      emailText += '<td><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + plexWebLink + str(tvShows[show]['id']) + '">' + title.decode('utf-8') + '</a></h2>'
       htmlText += '<div class="featurette" id="shows">'
-      htmlText += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px">'
-      htmlText += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + title.decode('utf-8') + '</h2>'      
+      htmlText += '<a target="_blank" href="' + plexWebLink + str(tvShows[show]['id']) + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px"></a>'
+      htmlText += '<div style="margin-left: 200px;"><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + plexWebLink + str(tvShows[show]['id']) + '">' + title.decode('utf-8') + '</a></h2>'
       
       sections = config['filter_sections_TV']
       for section in sorted(sections.iteritems(), key=lambda t: t[1]['order']):
@@ -783,12 +801,12 @@ with con:
       htmlText = ''
       
       emailText += '<table><tr width="100%">'
-      emailText += '<td width="200"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></td>'
-      emailText += '<td><h2 class="featurette-heading">' + title.decode('utf-8') + '</h2>'
+      emailText += '<td width="200"><a target="_blank" href="' + plexWebLink + str(tvSeasons[season]['id']) + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a></td>'
+      emailText += '<td><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + plexWebLink + str(tvSeasons[season]['id']) + '">' + title.decode('utf-8') + '</a></h2>'
       emailText += '<p class="lead"><b>Season ' + str(tvSeasons[season]['index']) + '</b></p>'
       htmlText += '<div class="featurette" id="shows">'
-      htmlText += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px">'
-      htmlText += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + title.decode('utf-8') + '</h2>'
+      htmlText += '<a target="_blank" href="' + plexWebLink + str(tvSeasons[season]['id']) + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px"></a>'
+      htmlText += '<div style="margin-left: 200px;"><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + plexWebLink + str(tvSeasons[season]['id']) + '">' + title.decode('utf-8') + '</a></h2>'
       htmlText += '<p class="lead"><b>Season ' + str(tvSeasons[season]['index']) + '</b></p>'      
       
       sections = config['filter_sections_TV']
@@ -866,12 +884,12 @@ with con:
         htmlText = ''
       
         emailText += '<table><tr width="100%">'
-        emailText += '<td width="200"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></td>'
-        emailText += '<td><h2 class="featurette-heading">' + showTitle.decode('utf-8') + '</h2>'
+        emailText += '<td width="200"><a target="_blank" href="' + plexWebLink + str(tvEpisodes[episode]['id']) + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a></td>'
+        emailText += '<td><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + plexWebLink + str(tvEpisodes[episode]['id']) + '">' + showTitle.decode('utf-8') + '</a></h2>'
         emailText += '<p class="lead"><i>S' + str(tvEpisodes[episode]['season_index']) + ' E' + str(tvEpisodes[episode]['index']) + ': ' + title.decode('utf-8') + '</i></p>'
         htmlText += '<div class="featurette" id="shows">'
-        htmlText += '<img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px">'
-        htmlText += '<div style="margin-left: 200px;"><h2 class="featurette-heading">' + showTitle.decode('utf-8') + '</h2>'
+        htmlText += '<a target="_blank" href="' + plexWebLink + str(tvEpisodes[episode]['id']) + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px"></a>'
+        htmlText += '<div style="margin-left: 200px;"><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + plexWebLink + str(tvEpisodes[episode]['id']) + '">' + showTitle.decode('utf-8') + '</a></h2>'
         htmlText += '<p class="lead"><i>S' + str(tvEpisodes[episode]['season_index']) + ' E' + str(tvEpisodes[episode]['index']) + ': ' + title.decode('utf-8') + '</i></p>'
         
         sections = config['filter_sections_TV']
