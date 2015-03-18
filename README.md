@@ -101,6 +101,7 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * email_skip_if_no_additions - True to skip sending emails if there are no new additions
 
 #####Filtering
+* filter_include_plex_web_link - True to add hyperlinks to the images and titles to go to Plex Web for the specific title
 * filter_show_movies - True to show recently added movies
 * filter_show_shows - True to show recently added TV shows
 * filter_show_seasons - True to show recently added TV seasons
