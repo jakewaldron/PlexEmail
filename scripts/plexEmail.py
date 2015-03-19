@@ -20,8 +20,11 @@ from email.MIMEImage import MIMEImage
 from email.header import Header
 from email.utils import formataddr
 
-def replaceConfigTokens():    
+def replaceConfigTokens():
   ## The below code is for backwards compatibility
+  if ('email_use_ssl' not in config):
+    config['email_use_ssl'] = False
+    
   if ('filter_include_plex_web_link' not in config):
     config['filter_include_plex_web_link'] = True
     
@@ -266,6 +269,7 @@ def sendMail(email):
   gmail_pwd = config['email_password']
   smtp_address = config['email_smtp_address']
   smtp_port = config['email_smtp_port']
+  use_ssl = config['email_use_ssl']
   FROM = formataddr((str(Header(config['email_from_name'])), config['email_from'])) if ('email_from_name' in config) else config['email_from']
   TO = email if (email != '') else config['email_to']
   SUBJECT = config['msg_email_subject']
@@ -303,12 +307,19 @@ def sendMail(email):
   msg.attach(plaintext)
   msg.attach(htmltext)
   msg['To'] = ", ".join(TO)
-  server = smtplib.SMTP(smtp_address, smtp_port) #or port 465 doesn't seem to work!
-  server.ehlo()
-  server.starttls()
-  server.login(gmail_user, gmail_pwd)
-  server.sendmail(FROM, TO, msg.as_string())
-  server.close()
+  if (not use_ssl):
+    server = smtplib.SMTP(smtp_address, smtp_port)
+    server.ehlo()
+    server.starttls()
+    server.login(gmail_user, gmail_pwd)
+    server.sendmail(FROM, TO, msg.as_string())
+    server.close()
+  else:
+    server = smtplib.SMTP_SSL(smtp_address, smtp_port)
+    server.ehlo()
+    server.login(gmail_user, gmail_pwd)
+    server.sendmail(FROM, TO, msg.as_string())
+    server.close()
   
 def createEmailHTML():
   emailText = """<!DOCTYPE html>
@@ -682,15 +693,19 @@ with con:
       skipItem = False
       emailText = ''
       htmlText = ''
+      if (config['filter_include_plex_web_link']):
+        pwLink = plexWebLink + str(movies[movie]['id'])
+      else:
+        pwLink = ''
       
       emailText += '<table><tr width="100%">'
       emailText += '<td width="200">'
-      emailText += '<a target="_blank" href="' + plexWebLink + str(movies[movie]['id']) + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a>'
+      emailText += '<a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a>'
       emailText += '</td>'
-      emailText += '<td><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + plexWebLink + str(movies[movie]['id']) + '">' + title.decode('utf-8') + '</a></h2>'
+      emailText += '<td><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + pwLink + '">' + title.decode('utf-8') + '</a></h2>'
       htmlText += '<div class="featurette" id="movies">'
-      htmlText += '<a target="_blank" href="' + plexWebLink + str(movies[movie]['id']) + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px"></a>'
-      htmlText += '<div style="margin-left: 200px;"><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + plexWebLink + str(movies[movie]['id']) + '">' + title.decode('utf-8') + '</a></h2>'
+      htmlText += '<a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px"></a>'
+      htmlText += '<div style="margin-left: 200px;"><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + pwLink + '">' + title.decode('utf-8') + '</a></h2>'
       
       sections = config['filter_sections_movies']
       for section in sorted(sections.iteritems(), key=lambda t: t[1]['order']):
@@ -729,13 +744,17 @@ with con:
       skipItem = False
       emailText = ''
       htmlText = ''
+      if (config['filter_include_plex_web_link']):
+        pwLink = plexWebLink + str(tvShows[show]['id'])
+      else:
+        pwLink = ''
       
       emailText += '<table><tr width="100%">'
-      emailText += '<td width="200"><a target="_blank" href="' + plexWebLink + str(tvShows[show]['id']) + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a></td>'
-      emailText += '<td><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + plexWebLink + str(tvShows[show]['id']) + '">' + title.decode('utf-8') + '</a></h2>'
+      emailText += '<td width="200"><a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a></td>'
+      emailText += '<td><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + pwLink + '">' + title.decode('utf-8') + '</a></h2>'
       htmlText += '<div class="featurette" id="shows">'
-      htmlText += '<a target="_blank" href="' + plexWebLink + str(tvShows[show]['id']) + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px"></a>'
-      htmlText += '<div style="margin-left: 200px;"><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + plexWebLink + str(tvShows[show]['id']) + '">' + title.decode('utf-8') + '</a></h2>'
+      htmlText += '<a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px"></a>'
+      htmlText += '<div style="margin-left: 200px;"><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + pwLink + '">' + title.decode('utf-8') + '</a></h2>'
       
       sections = config['filter_sections_TV']
       for section in sorted(sections.iteritems(), key=lambda t: t[1]['order']):
@@ -799,14 +818,18 @@ with con:
       skipItem = False
       emailText = ''
       htmlText = ''
+      if (config['filter_include_plex_web_link']):
+        pwLink = plexWebLink + str(tvSeasons[season]['id'])
+      else:
+        pwLink = ''
       
       emailText += '<table><tr width="100%">'
-      emailText += '<td width="200"><a target="_blank" href="' + plexWebLink + str(tvSeasons[season]['id']) + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a></td>'
-      emailText += '<td><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + plexWebLink + str(tvSeasons[season]['id']) + '">' + title.decode('utf-8') + '</a></h2>'
+      emailText += '<td width="200"><a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a></td>'
+      emailText += '<td><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + pwLink + '">' + title.decode('utf-8') + '</a></h2>'
       emailText += '<p class="lead"><b>Season ' + str(tvSeasons[season]['index']) + '</b></p>'
       htmlText += '<div class="featurette" id="shows">'
-      htmlText += '<a target="_blank" href="' + plexWebLink + str(tvSeasons[season]['id']) + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px"></a>'
-      htmlText += '<div style="margin-left: 200px;"><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + plexWebLink + str(tvSeasons[season]['id']) + '">' + title.decode('utf-8') + '</a></h2>'
+      htmlText += '<a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px"></a>'
+      htmlText += '<div style="margin-left: 200px;"><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + pwLink + '">' + title.decode('utf-8') + '</a></h2>'
       htmlText += '<p class="lead"><b>Season ' + str(tvSeasons[season]['index']) + '</b></p>'      
       
       sections = config['filter_sections_TV']
@@ -882,14 +905,18 @@ with con:
         skipItem = False
         emailText = ''
         htmlText = ''
+        if (config['filter_include_plex_web_link']):
+          pwLink = plexWebLink + str(tvEpisodes[episode]['id'])
+        else:
+          pwLink = ''
       
         emailText += '<table><tr width="100%">'
-        emailText += '<td width="200"><a target="_blank" href="' + plexWebLink + str(tvEpisodes[episode]['id']) + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a></td>'
-        emailText += '<td><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + plexWebLink + str(tvEpisodes[episode]['id']) + '">' + showTitle.decode('utf-8') + '</a></h2>'
+        emailText += '<td width="200"><a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a></td>'
+        emailText += '<td><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + pwLink + '">' + showTitle.decode('utf-8') + '</a></h2>'
         emailText += '<p class="lead"><i>S' + str(tvEpisodes[episode]['season_index']) + ' E' + str(tvEpisodes[episode]['index']) + ': ' + title.decode('utf-8') + '</i></p>'
         htmlText += '<div class="featurette" id="shows">'
-        htmlText += '<a target="_blank" href="' + plexWebLink + str(tvEpisodes[episode]['id']) + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px"></a>'
-        htmlText += '<div style="margin-left: 200px;"><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + plexWebLink + str(tvEpisodes[episode]['id']) + '">' + showTitle.decode('utf-8') + '</a></h2>'
+        htmlText += '<a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px"></a>'
+        htmlText += '<div style="margin-left: 200px;"><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + pwLink + '">' + showTitle.decode('utf-8') + '</a></h2>'
         htmlText += '<p class="lead"><i>S' + str(tvEpisodes[episode]['season_index']) + ' E' + str(tvEpisodes[episode]['index']) + ': ' + title.decode('utf-8') + '</i></p>'
         
         sections = config['filter_sections_TV']
@@ -926,22 +953,22 @@ with con:
       print 'Web page was not created because there were no new additions in the timeframe specified.'
       
     if (config['email_enabled'] and (not config['email_skip_if_no_additions'] or hasNewContent)):
-      try:
-        emailCount = 0
-        if (testMode):
-          sendMail([config['email_from']])
+      # try:
+      emailCount = 0
+      if (testMode):
+        sendMail([config['email_from']])
+        emailCount += 1
+      elif (config['email_individually']):
+        for emailAdd in config['email_to']:
+          email = [emailAdd]
+          sendMail(email)
           emailCount += 1
-        elif (config['email_individually']):
-          for emailAdd in config['email_to']:
-            email = [emailAdd]
-            sendMail(email)
-            emailCount += 1
-        else:
-          sendMail('')
-          emailCount += 1
-        print 'Successfully sent %s email(s)' % emailCount
-      except:
-        print "Failed to send email(s)"
+      else:
+        sendMail('')
+        emailCount += 1
+      print 'Successfully sent %s email(s)' % emailCount
+      # except:
+        # print "Failed to send email(s)"
     elif (not config['email_enabled']):
       print 'Emails were not sent because the option is disabled in the config file.'
     else:
