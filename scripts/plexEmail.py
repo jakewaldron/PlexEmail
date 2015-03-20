@@ -604,9 +604,9 @@ with con:
         if (row[1].lower() in (library.lower() for library in config['filter_libraries'])):
           if (libraryFilter == ''):
             libraryFilter = ' AND ('
-            libraryFilter += 'library_section_id != ' + str(row[0])
+            libraryFilter += 'MD.library_section_id != ' + str(row[0])
           else:
-            libraryFilter += ' OR library_section_id != ' + str(row[0])
+            libraryFilter += ' AND MD.library_section_id != ' + str(row[0])
       if (libraryFilter != ''):
         libraryFilter += ') '
       
