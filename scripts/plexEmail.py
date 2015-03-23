@@ -249,6 +249,8 @@ def uploadToImgur(imgToUpload, nameOfUpload):
       
 def uploadToCloudinary(imgToUpload):
   if (os.path.isfile(imgToUpload)):
+    print imgToUpload
+    print 'File Info: ' + str(os.stat(imgToUpload))
     response = cloudinary.uploader.upload(imgToUpload)
     return response['url']
   else:
