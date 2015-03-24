@@ -240,8 +240,6 @@ def uploadToImgur(imgToUpload, nameOfUpload):
         'title': nameOfUpload
       }
     )
-    print response
-    print json.dumps(response.text)
     data = json.loads(response.text)['data'];
     return data['link']
   else:
@@ -250,6 +248,9 @@ def uploadToImgur(imgToUpload, nameOfUpload):
 def uploadToCloudinary(imgToUpload):
   if (os.path.isfile(imgToUpload)):
     print imgToUpload
+    if (os.path.islink(imgToUpload)):
+      imgToUpload = os.path.realpath(imgToUpload)
+      print imgToUpload
     print 'File Info: ' + str(os.stat(imgToUpload))
     response = cloudinary.uploader.upload(imgToUpload)
     return response['url']
