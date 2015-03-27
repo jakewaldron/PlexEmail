@@ -22,6 +22,9 @@ from email.utils import formataddr
 
 def replaceConfigTokens():
   ## The below code is for backwards compatibility
+  if ('msg_notice' not in config):
+    config['msg_notice'] = ''
+  
   if ('email_use_ssl' not in config):
     config['email_use_ssl'] = False
     
@@ -240,8 +243,6 @@ def uploadToImgur(imgToUpload, nameOfUpload):
         'title': nameOfUpload
       }
     )
-    print response
-    print json.dumps(response.text)
     data = json.loads(response.text)['data'];
     return data['link']
   else:
@@ -249,6 +250,8 @@ def uploadToImgur(imgToUpload, nameOfUpload):
       
 def uploadToCloudinary(imgToUpload):
   if (os.path.isfile(imgToUpload)):
+    if (os.path.islink(imgToUpload)):
+      imgToUpload = os.path.realpath(imgToUpload)
     response = cloudinary.uploader.upload(imgToUpload)
     return response['url']
   else:
@@ -348,6 +351,20 @@ def createEmailHTML():
             <link rel="apple-touch-icon" sizes="114x114" href="images/icon_iphone@2x.png">
             <link rel="apple-touch-icon" sizes="144x144" href="images/icon_ipad@2x.png">
 
+            <style>
+              .info {
+              border: 1px solid;
+              padding:15px 10px 15px 50px;
+              background-repeat: no-repeat;
+              background-position: 10px center;
+              color: #00529B;
+              background-color: #BDE5F8;
+              background-image: url('../images/info.png');
+              font-family:Arial, Helvetica, sans-serif; 
+              font-size:20px;
+              text-align: center;
+            }
+            </style>
             <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
             <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
             <!--[if lt IE 9]>
@@ -370,6 +387,7 @@ def createEmailHTML():
             <!-- Page Content -->
             <div class="container">"""
             
+  emailText += emailNotice
   if (movieCount > 0 and config['filter_show_movies']):
     emailText += emailMovies + '<br/>&nbsp;'
   if (showCount > 0 and config['filter_show_shows']):
@@ -503,6 +521,7 @@ def createWebHTML():
           <!-- Page Content -->
           <div class="container">"""
   
+  htmlText += htmlNotice
   if (movieCount > 0 and config['filter_show_movies']):
     htmlText += htmlMovies + '<br/>&nbsp;'
   if (showCount > 0 and config['filter_show_shows']):
@@ -551,6 +570,7 @@ def createWebHTML():
 parser = argparse.ArgumentParser(description='This script aggregates all new TV and movie releases for the past x days then writes to your web directory and sends out an email.')
 parser.add_argument('-c','--configfile', help='The path to a config file to be used in the running of this instance of the script.', default=os.path.dirname(os.path.realpath(sys.argv[0])) + os.path.sep + 'config.conf', required=False)
 parser.add_argument('-t','--test', help='Run this script in test mode - Sends email only to sender', action='store_true')
+parser.add_argument('-n','--notice', help='Add a one-time message to the email/web page')
 args = vars(parser.parse_args())
 
 testMode = False
@@ -567,6 +587,9 @@ if (not os.path.isfile(configFile)):
 config = {}
 execfile(configFile, config)
 replaceConfigTokens()
+
+if ('notice' in args):
+  config['msg_notice'] = args['notice']
 
 if ('upload_use_cloudinary' in config and config['upload_use_cloudinary']):
   cloudinary.config( 
@@ -619,7 +642,12 @@ with con:
     response = {};
     for row in cur:
       response[row[0]] = {'id': row[0], 'parent_id': row[1], 'metadata_type': row[2], 'title': row[3], 'title_sort': row[4], 'original_title': row[5], 'rating': row[6], 'tagline': row[7], 'summary': row[8], 'content_rating': row[9], 'duration': row[10], 'user_thumb_url': row[11], 'tags_genre': row[12], 'tags_director': row[13], 'tags_star': row[14], 'year': row[15], 'hash': row[16], 'index': row[17], 'studio': row[18], 'real_duration': row[19]}
-            
+    
+    emailNotice = ''
+    htmlNotice = ''
+    if (config['msg_notice']):
+      emailNotice = """<br/>&nbsp;<div style="border: 1px solid; padding:15px 0px 15px 0px; background-repeat: no-repeat; background-position: 10px center; color: #00529B; background-color: #BDE5F8;font-family:Arial, Helvetica, sans-serif; font-size:20px; text-align: center;">""" + config['msg_notice'] + """</div><br/>&nbsp;"""
+      htmlNotice = """<div class="container"><hr class="featurette-divider"><div class="info">""" + config['msg_notice'] + """</div>"""
     emailMovies = """<div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
           <h1 style="width: 100%; text-align: center; background: #FFF !important;"><font style="color: #F9AA03;">""" + config['msg_new_movies_header'] + """</font></h1>
         </div><hr class="featurette-divider" id="movies-top"><br/>&nbsp;"""

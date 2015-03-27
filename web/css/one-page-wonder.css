@@ -61,6 +61,19 @@ footer {
     margin: 50px 0;
 }
 
+.info {
+  border: 1px solid;
+  padding:15px 10px 15px 50px;
+  background-repeat: no-repeat;
+  background-position: 10px center;
+  color: #00529B;
+  background-color: #BDE5F8;
+  background-image: url('../images/info.png');
+  font-family:Arial, Helvetica, sans-serif; 
+  font-size:20px;
+  text-align: center;
+}
+
 @media(max-width:1200px) {
     .headline h1 {
         font-size: 140px;

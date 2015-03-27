@@ -56,6 +56,18 @@ Pass in an alternate config file.  For example the default config file sends out
 python plexEmail.py -c C:\files\plexEmailWeekly.conf
 ```
 
+Run in test mode (send email only to sender address)
+
+```
+python plexEmail.py -t
+```
+
+Pass a special one-time notice to users
+
+```
+python plexEmail.py -n "This is a special notice to all users"
+```
+
 ## Config File
 
 The config file is in the scripts folder.  Before first run of the script, please update this file with your information.
@@ -119,6 +131,7 @@ The config file is in the scripts folder.  Before first run of the script, pleas
   * exclude - A list of values that if the title matches any of, will not be shown
 
 #####Messages
+* msg_notice - Used for special notices to the users. This can also be done through the command line using the -n flag.
 * msg_email_teaser - Teaser text on the email
 * msg_web_title - Title of the webpage
 * msg_email_subject Subject of email
