@@ -588,7 +588,7 @@ config = {}
 execfile(configFile, config)
 replaceConfigTokens()
 
-if ('notice' in args):
+if ('notice' in args and args['notice']):
   config['msg_notice'] = args['notice']
 
 if ('upload_use_cloudinary' in config and config['upload_use_cloudinary']):
