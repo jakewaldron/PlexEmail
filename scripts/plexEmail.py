@@ -20,9 +20,19 @@ from email.mime.text import MIMEText
 from email.MIMEImage import MIMEImage
 from email.header import Header
 from email.utils import formataddr
+from xml.etree.ElementTree import XML
 
 def replaceConfigTokens():
   ## The below code is for backwards compatibility
+  if ('email_to_send_to_shared_users' not in config):
+    config['email_to_send_to_shared_users'] = False
+    
+  if ('plex_username' not in config):
+    config['plex_username'] = ''
+    
+  if ('plex_password' not in config):
+    config['plex_password'] = ''
+    
   if ('filter_show_email_images' not in config):
     config['filter_show_email_images'] = True
     
@@ -164,6 +174,29 @@ def convertToHumanReadable(valuesToConvert):
       convertedValues[value + '_filter'] = valuesToConvert[value].split('|')
       convertedValues[value] = valuesToConvert[value].replace('|', ', ')
   return convertedValues
+
+def getSharedUserEmails():
+  emails = []
+  if (config['plex_username'] == '' or config['plex_password'] == ''):
+    return emails
+    
+  url = 'https://my.plexapp.com/users/sign_in.json'
+  base64string = 'Basic ' + base64.encodestring('%s:%s' % (config['plex_username'], config['plex_password'])).replace('\n', '')
+  headers = {'Authorization': base64string, 'X-Plex-Client-Identifier': 'plexEmail'}
+  response = requests.post(url, headers=headers)
+  token = json.loads(response.text)['user']['authentication_token'];
+  
+  url = 'https://plex.tv/pms/friends/all'
+  headers = {'Accept': 'application/json', 'X-Plex-Token': token}
+  response = requests.get(url, headers=headers)
+  
+  parsed = XML(response.text)
+  for elem in parsed:
+    for name, value in sorted(elem.attrib.items()):
+      if (name == 'email'):
+        emails.append(value.lower())
+        
+  return emails
 
 def deleteImages():
   folder = config['web_folder'] + config['web_path'] + os.path.sep + 'images' + os.path.sep
@@ -1001,6 +1034,10 @@ with con:
       
     if (config['email_enabled'] and (not config['email_skip_if_no_additions'] or hasNewContent)):
       # try:
+      if (config['email_to_send_to_shared_users']):
+        sharedEmails = getSharedUserEmails()
+        config['email_to'].extend(x for x in sharedEmails if x not in config['email_to'])
+
       emailCount = 0
       if (testMode):
         sendMail([config['email_from']])

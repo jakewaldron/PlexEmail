@@ -84,6 +84,10 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * date_hours_back_to_search - Number of hours to search backwards
 * date_minutes_back_to_search - Number of minutes to search backwards
 
+#####Plex API Authentication - This is only used for shared user emails currently
+* plex_username - Plex account username of the server
+* plex_password - Plex account password of the server
+
 #####Web
 * web_enabled - Enable the creation of the web page
 * web_domain - Domain name of the web page
@@ -103,6 +107,7 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * email_enabled - Enable the creation and sending of an email
 * email_individually - True to send out emails individually to each address in the email_to setting
 * email_to - Array of email addresses to send the email
+* email_to_send_to_shared_users - True to get list of shared user emails (plex_username and plex_password must be valid for this to be used)
 * email_from - Email address to send the email from
 * email_from_name - Friendly name of sender
 * email_smtp_address - SMTP address of the email service
