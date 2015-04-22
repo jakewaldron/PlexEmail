@@ -11,6 +11,7 @@ import base64
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
+import imghdr
 from base64 import b64encode
 from collections import OrderedDict
 from datetime import date, timedelta
@@ -22,6 +23,9 @@ from email.utils import formataddr
 
 def replaceConfigTokens():
   ## The below code is for backwards compatibility
+  if ('filter_show_email_images' not in config):
+    config['filter_show_email_images'] = True
+    
   if ('msg_notice' not in config):
     config['msg_notice'] = ''
   
@@ -119,6 +123,9 @@ def replaceConfigTokens():
     config['episode_sort_3_reverse'] = False
     
   # The below code is replacing tokens
+  if (config['web_domain'].rfind('/') < len(config['web_domain']) - len('/')):
+    config['web_domain'] = config['web_domain'] + '/'
+    
   for value in config:
     if (isinstance(config[value], str)):
       config[value] = config[value].replace('{past_day}', str((date.today() - timedelta(days=config['date_days_back_to_search'], hours=config['date_hours_back_to_search'], minutes=config['date_minutes_back_to_search'])).strftime(config['date_format'])))
@@ -134,6 +141,10 @@ def replaceConfigTokens():
     
   if (config['web_folder'].rfind(os.path.sep) < len(config['web_folder']) - len(os.path.sep)):
     config['web_folder'] = config['web_folder'] + os.path.sep
+    
+  if (config['web_domain'] != '' and config['web_domain'].rfind('/') < len(config['web_domain']) - len('/')):
+    config['web_domain'] = config['web_domain'] + '/'
+  
     
 def convertToHumanReadable(valuesToConvert):
   convertedValues = {}
@@ -166,7 +177,7 @@ def processImage(imageHash, thumb, mediaType, seasonIndex, episodeIndex):
     thumbObj['webImgPath'] = ''
     thumbObj['emailImgPath'] = ''
     return thumbObj
-    
+  
   if (thumb.find('http://') >= 0):
     thumbObj['webImgPath'] = thumb
     thumbObj['emailImgPath'] = thumb  
@@ -252,8 +263,11 @@ def uploadToCloudinary(imgToUpload):
   if (os.path.isfile(imgToUpload)):
     if (os.path.islink(imgToUpload)):
       imgToUpload = os.path.realpath(imgToUpload)
-    response = cloudinary.uploader.upload(imgToUpload)
-    return response['url']
+    if (imghdr.what(imgToUpload)):
+      response = cloudinary.uploader.upload(imgToUpload)
+      return response['url']
+    else:
+      return ''
   else:
     return ''
     
@@ -728,9 +742,10 @@ with con:
         pwLink = ''
       
       emailText += '<table><tr width="100%">'
-      emailText += '<td width="200">'
-      emailText += '<a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a>'
-      emailText += '</td>'
+      if (config['filter_show_email_images']):
+        emailText += '<td width="200">'
+        emailText += '<a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a>'
+        emailText += '</td>'
       emailText += '<td><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + pwLink + '">' + title.decode('utf-8') + '</a></h2>'
       htmlText += '<div class="featurette" id="movies">'
       htmlText += '<a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px"></a>'
@@ -779,7 +794,8 @@ with con:
         pwLink = ''
       
       emailText += '<table><tr width="100%">'
-      emailText += '<td width="200"><a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a></td>'
+      if (config['filter_show_email_images']):
+        emailText += '<td width="200"><a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a></td>'
       emailText += '<td><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + pwLink + '">' + title.decode('utf-8') + '</a></h2>'
       htmlText += '<div class="featurette" id="shows">'
       htmlText += '<a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px"></a>'
@@ -853,7 +869,8 @@ with con:
         pwLink = ''
       
       emailText += '<table><tr width="100%">'
-      emailText += '<td width="200"><a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a></td>'
+      if (config['filter_show_email_images']):
+        emailText += '<td width="200"><a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a></td>'
       emailText += '<td><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + pwLink + '">' + title.decode('utf-8') + '</a></h2>'
       emailText += '<p class="lead"><b>Season ' + str(tvSeasons[season]['index']) + '</b></p>'
       htmlText += '<div class="featurette" id="shows">'
@@ -940,7 +957,8 @@ with con:
           pwLink = ''
       
         emailText += '<table><tr width="100%">'
-        emailText += '<td width="200"><a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a></td>'
+        if (config['filter_show_email_images']):
+          emailText += '<td width="200"><a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a></td>'
         emailText += '<td><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + pwLink + '">' + showTitle.decode('utf-8') + '</a></h2>'
         emailText += '<p class="lead"><i>S' + str(tvEpisodes[episode]['season_index']) + ' E' + str(tvEpisodes[episode]['index']) + ': ' + title.decode('utf-8') + '</i></p>'
         htmlText += '<div class="featurette" id="shows">'
@@ -971,7 +989,7 @@ with con:
     
     emailHTML = createEmailHTML()
     webHTML = createWebHTML()
-	
+
     if (config['web_enabled'] and not config['web_only_save_images'] and (not config['web_skip_if_no_additions'] or hasNewContent)):
       with open(config['web_folder'] + config['web_path'] + os.path.sep + 'index.html', 'w') as text_file:
         text_file.write(webHTML.encode('utf-8'))

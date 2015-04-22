@@ -119,6 +119,7 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * filter_show_shows - True to show recently added TV shows
 * filter_show_seasons - True to show recently added TV seasons
 * filter_show_episodes - True to show recently added TV episodes
+* filter_show_email_images - True to show images in the email
 * filter_libraries - A list of library names to filter out - ['Home Videos', 'Private']
 * filter_sections_movies - Movie specific filters
 * filter_sections_TV - TV specific filters
