@@ -106,6 +106,7 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 #####Email
 * email_enabled - Enable the creation and sending of an email
 * email_individually - True to send out emails individually to each address in the email_to setting
+* email_use_bcc - True to send emails on using bcc instead of to (email_to settings will send to them using bcc)
 * email_to - Array of email addresses to send the email
 * email_to_send_to_shared_users - True to get list of shared user emails (plex_username and plex_password must be valid for this to be used)
 * email_from - Email address to send the email from

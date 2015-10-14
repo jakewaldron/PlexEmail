@@ -24,6 +24,9 @@ from xml.etree.ElementTree import XML
 
 def replaceConfigTokens():
   ## The below code is for backwards compatibility
+  if ('email_use_bcc' not in config):
+    config['email_use_bcc'] = False
+    
   if ('email_to_send_to_shared_users' not in config):
     config['email_to_send_to_shared_users'] = False
     
@@ -357,7 +360,8 @@ def sendMail(email):
   # the HTML message, is best and preferred.
   msg.attach(plaintext)
   msg.attach(htmltext)
-  msg['To'] = ", ".join(TO)
+  if (not config['email_use_bcc']):
+    msg['To'] = ", ".join(TO)
   if (not use_ssl):
     server = smtplib.SMTP(smtp_address, smtp_port)
     server.ehlo()
