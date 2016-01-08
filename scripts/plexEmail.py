@@ -24,6 +24,9 @@ from xml.etree.ElementTree import XML
 
 def replaceConfigTokens():
   ## The below code is for backwards compatibility
+  if ('email_unsubscribe' not in config):
+    config['email_unsubscribe'] = []
+    
   if ('email_use_bcc' not in config):
     config['email_use_bcc'] = False
     
@@ -319,6 +322,10 @@ def addheader(message, headername, headervalue):
   return message
 
 def sendMail(email):
+  #First check if email is in the unsubscribe list
+  if email != '' and email[0].upper() in (name.upper() for name in config['email_unsubscribe']):
+    print email[0] + ' is in the unsubscribe list.  Do not send an email.'
+    return 0;
   gmail_user = config['email_username']
   gmail_pwd = config['email_password']
   smtp_address = config['email_smtp_address']
@@ -375,6 +382,8 @@ def sendMail(email):
     server.login(gmail_user, gmail_pwd)
     server.sendmail(FROM, TO, msg.as_string())
     server.close()
+    
+  return 1;
   
 def createEmailHTML():
   emailText = """<!DOCTYPE html>
@@ -1044,16 +1053,16 @@ with con:
 
       emailCount = 0
       if (testMode):
-        sendMail([config['email_from']])
-        emailCount += 1
+        success = sendMail([config['email_from']])
+        emailCount += success
       elif (config['email_individually']):
         for emailAdd in config['email_to']:
           email = [emailAdd]
-          sendMail(email)
-          emailCount += 1
+          success = sendMail(email)
+          emailCount += success
       else:
-        sendMail('')
-        emailCount += 1
+        success = sendMail('')
+        emailCount += success
       print 'Successfully sent %s email(s)' % emailCount
       # except:
         # print "Failed to send email(s)"
