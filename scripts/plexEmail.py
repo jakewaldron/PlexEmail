@@ -11,6 +11,7 @@ import base64
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
+import imghdr
 from base64 import b64encode
 from collections import OrderedDict
 from datetime import date, timedelta
@@ -19,9 +20,28 @@ from email.mime.text import MIMEText
 from email.MIMEImage import MIMEImage
 from email.header import Header
 from email.utils import formataddr
+from xml.etree.ElementTree import XML
 
 def replaceConfigTokens():
   ## The below code is for backwards compatibility
+  if ('email_use_bcc' not in config):
+    config['email_use_bcc'] = False
+    
+  if ('email_to_send_to_shared_users' not in config):
+    config['email_to_send_to_shared_users'] = False
+    
+  if ('plex_username' not in config):
+    config['plex_username'] = ''
+    
+  if ('plex_password' not in config):
+    config['plex_password'] = ''
+    
+  if ('filter_show_email_images' not in config):
+    config['filter_show_email_images'] = True
+    
+  if ('msg_notice' not in config):
+    config['msg_notice'] = ''
+  
   if ('email_use_ssl' not in config):
     config['email_use_ssl'] = False
     
@@ -116,6 +136,9 @@ def replaceConfigTokens():
     config['episode_sort_3_reverse'] = False
     
   # The below code is replacing tokens
+  if (config['web_domain'].rfind('/') < len(config['web_domain']) - len('/')):
+    config['web_domain'] = config['web_domain'] + '/'
+    
   for value in config:
     if (isinstance(config[value], str)):
       config[value] = config[value].replace('{past_day}', str((date.today() - timedelta(days=config['date_days_back_to_search'], hours=config['date_hours_back_to_search'], minutes=config['date_minutes_back_to_search'])).strftime(config['date_format'])))
@@ -131,6 +154,10 @@ def replaceConfigTokens():
     
   if (config['web_folder'].rfind(os.path.sep) < len(config['web_folder']) - len(os.path.sep)):
     config['web_folder'] = config['web_folder'] + os.path.sep
+    
+  if (config['web_domain'] != '' and config['web_domain'].rfind('/') < len(config['web_domain']) - len('/')):
+    config['web_domain'] = config['web_domain'] + '/'
+  
     
 def convertToHumanReadable(valuesToConvert):
   convertedValues = {}
@@ -151,6 +178,29 @@ def convertToHumanReadable(valuesToConvert):
       convertedValues[value] = valuesToConvert[value].replace('|', ', ')
   return convertedValues
 
+def getSharedUserEmails():
+  emails = []
+  if (config['plex_username'] == '' or config['plex_password'] == ''):
+    return emails
+    
+  url = 'https://my.plexapp.com/users/sign_in.json'
+  base64string = 'Basic ' + base64.encodestring('%s:%s' % (config['plex_username'], config['plex_password'])).replace('\n', '')
+  headers = {'Authorization': base64string, 'X-Plex-Client-Identifier': 'plexEmail'}
+  response = requests.post(url, headers=headers)
+  token = json.loads(response.text)['user']['authentication_token'];
+  
+  url = 'https://plex.tv/pms/friends/all'
+  headers = {'Accept': 'application/json', 'X-Plex-Token': token}
+  response = requests.get(url, headers=headers)
+  
+  parsed = XML(response.text)
+  for elem in parsed:
+    for name, value in sorted(elem.attrib.items()):
+      if (name == 'email'):
+        emails.append(value.lower())
+        
+  return emails
+
 def deleteImages():
   folder = config['web_folder'] + config['web_path'] + os.path.sep + 'images' + os.path.sep
   for file in os.listdir(folder):
@@ -163,7 +213,7 @@ def processImage(imageHash, thumb, mediaType, seasonIndex, episodeIndex):
     thumbObj['webImgPath'] = ''
     thumbObj['emailImgPath'] = ''
     return thumbObj
-    
+  
   if (thumb.find('http://') >= 0):
     thumbObj['webImgPath'] = thumb
     thumbObj['emailImgPath'] = thumb  
@@ -247,6 +297,7 @@ def uploadToImgur(imgToUpload, nameOfUpload):
       
 def uploadToCloudinary(imgToUpload):
   if (os.path.isfile(imgToUpload)):
+<<<<<<< HEAD
     print imgToUpload
     if (os.path.islink(imgToUpload)):
       imgToUpload = os.path.realpath(imgToUpload)
@@ -254,6 +305,15 @@ def uploadToCloudinary(imgToUpload):
     print 'File Info: ' + str(os.stat(imgToUpload))
     response = cloudinary.uploader.upload(imgToUpload)
     return response['url']
+=======
+    if (os.path.islink(imgToUpload)):
+      imgToUpload = os.path.realpath(imgToUpload)
+    if (imghdr.what(imgToUpload)):
+      response = cloudinary.uploader.upload(imgToUpload)
+      return response['url']
+    else:
+      return ''
+>>>>>>> refs/remotes/origin/master
   else:
     return ''
     
@@ -310,7 +370,8 @@ def sendMail(email):
   # the HTML message, is best and preferred.
   msg.attach(plaintext)
   msg.attach(htmltext)
-  msg['To'] = ", ".join(TO)
+  if (not config['email_use_bcc']):
+    msg['To'] = ", ".join(TO)
   if (not use_ssl):
     server = smtplib.SMTP(smtp_address, smtp_port)
     server.ehlo()
@@ -351,6 +412,20 @@ def createEmailHTML():
             <link rel="apple-touch-icon" sizes="114x114" href="images/icon_iphone@2x.png">
             <link rel="apple-touch-icon" sizes="144x144" href="images/icon_ipad@2x.png">
 
+            <style>
+              .info {
+              border: 1px solid;
+              padding:15px 10px 15px 50px;
+              background-repeat: no-repeat;
+              background-position: 10px center;
+              color: #00529B;
+              background-color: #BDE5F8;
+              background-image: url('../images/info.png');
+              font-family:Arial, Helvetica, sans-serif; 
+              font-size:20px;
+              text-align: center;
+            }
+            </style>
             <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
             <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
             <!--[if lt IE 9]>
@@ -373,6 +448,7 @@ def createEmailHTML():
             <!-- Page Content -->
             <div class="container">"""
             
+  emailText += emailNotice
   if (movieCount > 0 and config['filter_show_movies']):
     emailText += emailMovies + '<br/>&nbsp;'
   if (showCount > 0 and config['filter_show_shows']):
@@ -506,6 +582,7 @@ def createWebHTML():
           <!-- Page Content -->
           <div class="container">"""
   
+  htmlText += htmlNotice
   if (movieCount > 0 and config['filter_show_movies']):
     htmlText += htmlMovies + '<br/>&nbsp;'
   if (showCount > 0 and config['filter_show_shows']):
@@ -554,6 +631,7 @@ def createWebHTML():
 parser = argparse.ArgumentParser(description='This script aggregates all new TV and movie releases for the past x days then writes to your web directory and sends out an email.')
 parser.add_argument('-c','--configfile', help='The path to a config file to be used in the running of this instance of the script.', default=os.path.dirname(os.path.realpath(sys.argv[0])) + os.path.sep + 'config.conf', required=False)
 parser.add_argument('-t','--test', help='Run this script in test mode - Sends email only to sender', action='store_true')
+parser.add_argument('-n','--notice', help='Add a one-time message to the email/web page')
 args = vars(parser.parse_args())
 
 testMode = False
@@ -570,6 +648,9 @@ if (not os.path.isfile(configFile)):
 config = {}
 execfile(configFile, config)
 replaceConfigTokens()
+
+if ('notice' in args and args['notice']):
+  config['msg_notice'] = args['notice']
 
 if ('upload_use_cloudinary' in config and config['upload_use_cloudinary']):
   cloudinary.config( 
@@ -622,7 +703,12 @@ with con:
     response = {};
     for row in cur:
       response[row[0]] = {'id': row[0], 'parent_id': row[1], 'metadata_type': row[2], 'title': row[3], 'title_sort': row[4], 'original_title': row[5], 'rating': row[6], 'tagline': row[7], 'summary': row[8], 'content_rating': row[9], 'duration': row[10], 'user_thumb_url': row[11], 'tags_genre': row[12], 'tags_director': row[13], 'tags_star': row[14], 'year': row[15], 'hash': row[16], 'index': row[17], 'studio': row[18], 'real_duration': row[19]}
-            
+    
+    emailNotice = ''
+    htmlNotice = ''
+    if (config['msg_notice']):
+      emailNotice = """<br/>&nbsp;<div style="border: 1px solid; padding:15px 0px 15px 0px; background-repeat: no-repeat; background-position: 10px center; color: #00529B; background-color: #BDE5F8;font-family:Arial, Helvetica, sans-serif; font-size:20px; text-align: center;">""" + config['msg_notice'] + """</div><br/>&nbsp;"""
+      htmlNotice = """<div class="container"><hr class="featurette-divider"><div class="info">""" + config['msg_notice'] + """</div>"""
     emailMovies = """<div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
           <h1 style="width: 100%; text-align: center; background: #FFF !important;"><font style="color: #F9AA03;">""" + config['msg_new_movies_header'] + """</font></h1>
         </div><hr class="featurette-divider" id="movies-top"><br/>&nbsp;"""
@@ -703,9 +789,10 @@ with con:
         pwLink = ''
       
       emailText += '<table><tr width="100%">'
-      emailText += '<td width="200">'
-      emailText += '<a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a>'
-      emailText += '</td>'
+      if (config['filter_show_email_images']):
+        emailText += '<td width="200">'
+        emailText += '<a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a>'
+        emailText += '</td>'
       emailText += '<td><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + pwLink + '">' + title.decode('utf-8') + '</a></h2>'
       htmlText += '<div class="featurette" id="movies">'
       htmlText += '<a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px"></a>'
@@ -754,7 +841,8 @@ with con:
         pwLink = ''
       
       emailText += '<table><tr width="100%">'
-      emailText += '<td width="200"><a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a></td>'
+      if (config['filter_show_email_images']):
+        emailText += '<td width="200"><a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a></td>'
       emailText += '<td><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + pwLink + '">' + title.decode('utf-8') + '</a></h2>'
       htmlText += '<div class="featurette" id="shows">'
       htmlText += '<a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px"></a>'
@@ -828,7 +916,8 @@ with con:
         pwLink = ''
       
       emailText += '<table><tr width="100%">'
-      emailText += '<td width="200"><a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a></td>'
+      if (config['filter_show_email_images']):
+        emailText += '<td width="200"><a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a></td>'
       emailText += '<td><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + pwLink + '">' + title.decode('utf-8') + '</a></h2>'
       emailText += '<p class="lead"><b>Season ' + str(tvSeasons[season]['index']) + '</b></p>'
       htmlText += '<div class="featurette" id="shows">'
@@ -915,7 +1004,8 @@ with con:
           pwLink = ''
       
         emailText += '<table><tr width="100%">'
-        emailText += '<td width="200"><a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a></td>'
+        if (config['filter_show_email_images']):
+          emailText += '<td width="200"><a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a></td>'
         emailText += '<td><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + pwLink + '">' + showTitle.decode('utf-8') + '</a></h2>'
         emailText += '<p class="lead"><i>S' + str(tvEpisodes[episode]['season_index']) + ' E' + str(tvEpisodes[episode]['index']) + ': ' + title.decode('utf-8') + '</i></p>'
         htmlText += '<div class="featurette" id="shows">'
@@ -946,7 +1036,7 @@ with con:
     
     emailHTML = createEmailHTML()
     webHTML = createWebHTML()
-	
+
     if (config['web_enabled'] and not config['web_only_save_images'] and (not config['web_skip_if_no_additions'] or hasNewContent)):
       with open(config['web_folder'] + config['web_path'] + os.path.sep + 'index.html', 'w') as text_file:
         text_file.write(webHTML.encode('utf-8'))
@@ -958,6 +1048,10 @@ with con:
       
     if (config['email_enabled'] and (not config['email_skip_if_no_additions'] or hasNewContent)):
       # try:
+      if (config['email_to_send_to_shared_users']):
+        sharedEmails = getSharedUserEmails()
+        config['email_to'].extend(x for x in sharedEmails if x not in config['email_to'])
+
       emailCount = 0
       if (testMode):
         sendMail([config['email_from']])

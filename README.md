@@ -56,6 +56,18 @@ Pass in an alternate config file.  For example the default config file sends out
 python plexEmail.py -c C:\files\plexEmailWeekly.conf
 ```
 
+Run in test mode (send email only to sender address)
+
+```
+python plexEmail.py -t
+```
+
+Pass a special one-time notice to users
+
+```
+python plexEmail.py -n "This is a special notice to all users"
+```
+
 ## Config File
 
 The config file is in the scripts folder.  Before first run of the script, please update this file with your information.
@@ -71,6 +83,10 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * date_days_back_to_search - Number of days to search backwards
 * date_hours_back_to_search - Number of hours to search backwards
 * date_minutes_back_to_search - Number of minutes to search backwards
+
+#####Plex API Authentication - This is only used for shared user emails currently
+* plex_username - Plex account username of the server
+* plex_password - Plex account password of the server
 
 #####Web
 * web_enabled - Enable the creation of the web page
@@ -90,7 +106,9 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 #####Email
 * email_enabled - Enable the creation and sending of an email
 * email_individually - True to send out emails individually to each address in the email_to setting
+* email_use_bcc - True to send emails on using bcc instead of to (email_to settings will send to them using bcc)
 * email_to - Array of email addresses to send the email
+* email_to_send_to_shared_users - True to get list of shared user emails (plex_username and plex_password must be valid for this to be used)
 * email_from - Email address to send the email from
 * email_from_name - Friendly name of sender
 * email_smtp_address - SMTP address of the email service
@@ -107,6 +125,7 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * filter_show_shows - True to show recently added TV shows
 * filter_show_seasons - True to show recently added TV seasons
 * filter_show_episodes - True to show recently added TV episodes
+* filter_show_email_images - True to show images in the email
 * filter_libraries - A list of library names to filter out - ['Home Videos', 'Private']
 * filter_sections_movies - Movie specific filters
 * filter_sections_TV - TV specific filters
@@ -119,6 +138,7 @@ The config file is in the scripts folder.  Before first run of the script, pleas
   * exclude - A list of values that if the title matches any of, will not be shown
 
 #####Messages
+* msg_notice - Used for special notices to the users. This can also be done through the command line using the -n flag.
 * msg_email_teaser - Teaser text on the email
 * msg_web_title - Title of the webpage
 * msg_email_subject Subject of email
