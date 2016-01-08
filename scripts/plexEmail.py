@@ -297,15 +297,6 @@ def uploadToImgur(imgToUpload, nameOfUpload):
       
 def uploadToCloudinary(imgToUpload):
   if (os.path.isfile(imgToUpload)):
-<<<<<<< HEAD
-    print imgToUpload
-    if (os.path.islink(imgToUpload)):
-      imgToUpload = os.path.realpath(imgToUpload)
-      print imgToUpload
-    print 'File Info: ' + str(os.stat(imgToUpload))
-    response = cloudinary.uploader.upload(imgToUpload)
-    return response['url']
-=======
     if (os.path.islink(imgToUpload)):
       imgToUpload = os.path.realpath(imgToUpload)
     if (imghdr.what(imgToUpload)):
@@ -313,7 +304,6 @@ def uploadToCloudinary(imgToUpload):
       return response['url']
     else:
       return ''
->>>>>>> refs/remotes/origin/master
   else:
     return ''
     
