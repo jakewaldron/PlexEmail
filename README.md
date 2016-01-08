@@ -90,6 +90,7 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 
 #####Web
 * web_enabled - Enable the creation of the web page
+* web_only_save_images - Will not create the index.html, but will still save images to the image folder.
 * web_domain - Domain name of the web page
 * web_path - Path on the domain to the web page
 * web_delete_previous_images - True to delete all .jpg images in the web image folder prior to copying over current images
@@ -109,6 +110,7 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * email_use_bcc - True to send emails on using bcc instead of to (email_to settings will send to them using bcc)
 * email_to - Array of email addresses to send the email
 * email_to_send_to_shared_users - True to get list of shared user emails (plex_username and plex_password must be valid for this to be used)
+* email_unsubscribe - List of emails to exclude (emails in email_to will override emails in this)
 * email_from - Email address to send the email from
 * email_from_name - Friendly name of sender
 * email_smtp_address - SMTP address of the email service
