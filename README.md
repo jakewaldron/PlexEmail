@@ -40,6 +40,12 @@ This script aggregates all new TV and movie releases for the past x days and wri
 
 https://forums.plex.tv/index.php/topic/151619-plexemail-in-development/page-7#entry879778
 
+## Installation (FreeNAS)
+
+Thanks to [adrianwi](https://forums.plex.tv/profile/adrianwi):
+
+https://forums.freenas.org/index.php?threads/guide-for-installing-plexemail.40748/#post-257799
+
 ## Usage
 
 #### Normal Usage
