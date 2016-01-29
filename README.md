@@ -56,7 +56,7 @@ python plexEmail.py
 
 #### Alternate Usage
 
-Pass in an alternate config file.  For example the default config file sends out a daily email (using Cloudinary), while an alternate config file is set up for a weekly web page.
+Pass in an alternate config file. For example, the default config file sends out a daily email (using Cloudinary), while an alternate config file is set up for a weekly web page.
 
 ```
 python plexEmail.py -c C:\files\plexEmailWeekly.conf
