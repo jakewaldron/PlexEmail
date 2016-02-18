@@ -124,9 +124,17 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 #####Filtering
 * filter_include_plex_web_link - True to add hyperlinks to the images and titles to go to Plex Web for the specific title
 * filter_show_movies - True to show recently added movies
+* filter_movies_include - List of movies to include (Anything that does not match perfectly will not be included)
+* filter_movies_excluse - List of movies to exclude (Only titles that match perfectly will be excluded)
 * filter_show_shows - True to show recently added TV shows
+* filter_shows_include - List of shows to include (Anything that does not match perfectly will not be included)
+* filter_shows_excluse - List of shows to exclude (Only titles that match perfectly will be excluded)
 * filter_show_seasons - True to show recently added TV seasons
+* filter_seasons_include - List of seasons to include (Anything that does not match perfectly will not be included)
+* filter_seasons_excluse - List of seasons to exclude (Only titles that match perfectly will be excluded)
 * filter_show_episodes - True to show recently added TV episodes
+* filter_episodes_include - List of episodes to include (Anything that does not match perfectly will not be included)
+* filter_episodes_excluse - List of episodes to exclude (Only titles that match perfectly will be excluded)
 * filter_show_email_images - True to show images in the email
 * filter_libraries - A list of library names to filter out - ['Home Videos', 'Private']
 * filter_sections_movies - Movie specific filters
@@ -138,6 +146,7 @@ The config file is in the scripts folder.  Before first run of the script, pleas
   * postText - The text that should be added after this field for each title
   * include - A list of values that are each title must match at least one to be shown
   * exclude - A list of values that if the title matches any of, will not be shown
+  * format - Date format to be applied (Only use this for air_date)
 
 #####Messages
 * msg_notice - Used for special notices to the users. This can also be done through the command line using the -n flag.

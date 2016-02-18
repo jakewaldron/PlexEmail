@@ -12,6 +12,7 @@ import cloudinary
 import cloudinary.uploader
 import cloudinary.api
 import imghdr
+import time
 from base64 import b64encode
 from collections import OrderedDict
 from datetime import date, timedelta
@@ -24,6 +25,33 @@ from xml.etree.ElementTree import XML
 
 def replaceConfigTokens():
   ## The below code is for backwards compatibility
+  if ('filter_movies_include' not in config):
+    config['filter_movies_include'] = []
+    
+  if ('filter_movies_exclude' not in config):
+    config['filter_movies_exclude'] = []
+    
+  if ('filter_shows_include' not in config):
+    config['filter_movies_include'] = []
+    
+  if ('filter_shows_exclude' not in config):
+    config['filter_movies_exclude'] = []
+    
+  if ('filter_seasons_include' not in config):
+    config['filter_movies_include'] = []
+    
+  if ('filter_seasons_exclude' not in config):
+    config['filter_movies_exclude'] = []
+    
+  if ('filter_episodes_include' not in config):
+    config['filter_movies_include'] = []
+    
+  if ('filter_episodes_exclude' not in config):
+    config['filter_movies_exclude'] = []
+    
+  if ('filter_episode_thumbnail_type' not in config):
+    config['filter_episode_thumbnail_type'] = 'episode'
+  
   if ('email_unsubscribe' not in config):
     config['email_unsubscribe'] = []
     
@@ -357,7 +385,7 @@ def sendMail(email):
   #Create image headers
   for image in imgNames:
     fp = open(imgNames[image], 'rb')
-    msgImage = MIMEImage(fp.read())
+    msgImage = MIMEImage(fp.read(), _subtype="jpg")
     fp.close()
     msgImage.add_header('Content-ID', '<' + image + '>')
     msg.attach(msgImage)
@@ -697,11 +725,11 @@ with con:
     dateSearch = 'datetime(\'now\', \'localtime\', \'-' + str(config['date_days_back_to_search']) + ' days\', \'-' + str(config['date_hours_back_to_search']) + ' hours\', \'-' + str(config['date_minutes_back_to_search']) + ' minutes\')'
 
     cur = con.cursor()    
-    cur.execute("SELECT MD.id, MD.parent_id, MD.metadata_type, MD.title, MD.title_sort, MD.original_title, MD.rating, MD.tagline, MD.summary, MD.content_rating, MD.duration, MD.user_thumb_url, MD.tags_genre, MD.tags_director, MD.tags_star, MD.year, MD.hash, MD.[index], MD.studio, ME.duration FROM metadata_items MD LEFT OUTER JOIN media_items ME ON MD.id = ME.metadata_item_id WHERE added_at >= " + dateSearch + " AND metadata_type >= 1 AND metadata_type <= 4 " + libraryFilter + " ORDER BY title_sort;")
+    cur.execute("SELECT MD.id, MD.parent_id, MD.metadata_type, MD.title, MD.title_sort, MD.original_title, MD.rating, MD.tagline, MD.summary, MD.content_rating, MD.duration, MD.user_thumb_url, MD.tags_genre, MD.tags_director, MD.tags_star, MD.year, MD.hash, MD.[index], MD.studio, ME.duration, MD.originally_available_at FROM metadata_items MD LEFT OUTER JOIN media_items ME ON MD.id = ME.metadata_item_id WHERE added_at >= " + dateSearch + " AND metadata_type >= 1 AND metadata_type <= 4 " + libraryFilter + " ORDER BY title_sort;")
 
     response = {};
     for row in cur:
-      response[row[0]] = {'id': row[0], 'parent_id': row[1], 'metadata_type': row[2], 'title': row[3], 'title_sort': row[4], 'original_title': row[5], 'rating': row[6], 'tagline': row[7], 'summary': row[8], 'content_rating': row[9], 'duration': row[10], 'user_thumb_url': row[11], 'tags_genre': row[12], 'tags_director': row[13], 'tags_star': row[14], 'year': row[15], 'hash': row[16], 'index': row[17], 'studio': row[18], 'real_duration': row[19]}
+      response[row[0]] = {'id': row[0], 'parent_id': row[1], 'metadata_type': row[2], 'title': row[3], 'title_sort': row[4], 'original_title': row[5], 'rating': row[6], 'tagline': row[7], 'summary': row[8], 'content_rating': row[9], 'duration': row[10], 'user_thumb_url': row[11], 'tags_genre': row[12], 'tags_director': row[13], 'tags_star': row[14], 'year': row[15], 'hash': row[16], 'index': row[17], 'studio': row[18], 'real_duration': row[19], 'air_date': row[20]}
     
     emailNotice = ''
     htmlNotice = ''
@@ -802,12 +830,20 @@ with con:
         if (movies[movie][section[0]] in sections[section[0]]['exclude'] or len(set(movies[movie][section[0] + '_filter']).intersection(sections[section[0]]['exclude'])) > 0 or (sections[section[0]]['include'] and movies[movie][section[0]] not in sections[section[0]]['include'] and len(set(movies[movie][section[0] + '_filter']).intersection(sections[section[0]]['include'])) == 0)):
           skipItem = True
         if (sections[section[0]]['show'] and movies[movie][section[0]] and movies[movie][section[0]] != ''):
-          emailText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + str(movies[movie][section[0]]).decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
-          htmlText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + str(movies[movie][section[0]]).decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
+          displayText = str(movies[movie][section[0]])
+          if ('format' in sections[section[0]] and sections[section[0]]['format'] != ''):
+            displayText = time.strftime(sections[section[0]]['format'], time.strptime(displayText, '%Y-%m-%d %H:%M:%S'))
+          emailText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + displayText.decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
+          htmlText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + displayText.decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
       
       emailText += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
       htmlText += '</div></div><br/>&nbsp;<br/>&nbsp;'
       
+      titleFilter = []
+        
+      if (movies[movie]['title'] in config['filter_movies_exclude'] or len(set(titleFilter).intersection(config['filter_movies_exclude'])) > 0 or (config['filter_movies_include'] and movies[movie]['title'] not in config['filter_movies_include'] and len(set(titleFilter).intersection(config['filter_movies_include'])) == 0)):
+        skipItem = True
+        
       if (not skipItem):
         movieCount += 1
         emailMovies += emailText
@@ -852,12 +888,20 @@ with con:
         if (tvShows[show][section[0]] in sections[section[0]]['exclude'] or len(set(tvShows[show][section[0] + '_filter']).intersection(sections[section[0]]['exclude'])) > 0 or (sections[section[0]]['include'] and tvShows[show][section[0]] not in sections[section[0]]['include'] and len(set(tvShows[show][section[0] + '_filter']).intersection(sections[section[0]]['include'])) == 0)):
           skipItem = True
         if (sections[section[0]]['show'] and tvShows[show][section[0]] and tvShows[show][section[0]] != ''):
-          emailText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + str(tvShows[show][section[0]]).decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
-          htmlText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + str(tvShows[show][section[0]]).decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
+          displayText = str(tvShows[show][section[0]])
+          if ('format' in sections[section[0]] and sections[section[0]]['format'] != ''):
+            displayText = time.strftime(sections[section[0]]['format'], time.strptime(displayText, '%Y-%m-%d %H:%M:%S'))
+          emailText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + displayText.decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
+          htmlText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + displayText.decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
       
       emailText += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
       htmlText += '</div></div><br/>&nbsp;<br/>&nbsp;'
       
+      titleFilter = []
+        
+      if (tvShows[show]['title'] in config['filter_shows_exclude'] or len(set(titleFilter).intersection(config['filter_shows_exclude'])) > 0 or (config['filter_shows_include'] and tvShows[show]['title'] not in config['filter_shows_include'] and len(set(titleFilter).intersection(config['filter_shows_include'])) == 0)):
+        skipItem = True
+        
       if (not skipItem):
         showCount += 1
         emailTVShows += emailText
@@ -935,6 +979,11 @@ with con:
       emailText += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
       htmlText += '</div></div><br/>&nbsp;<br/>&nbsp;'
       
+      titleFilter = []
+        
+      if (tvSeasons[season]['title'] in config['filter_seasons_exclude'] or len(set(titleFilter).intersection(config['filter_seasons_exclude'])) > 0 or (config['filter_seasons_include'] and tvSeasons[season]['title'] not in config['filter_seasons_include'] and len(set(titleFilter).intersection(config['filter_seasons_include'])) == 0)):
+        skipItem = True
+          
       if (not skipItem):
         seasonCount += 1
         emailTVSeasons += emailText
@@ -984,13 +1033,14 @@ with con:
         title += tvEpisodes[episode]['title']
         hash = str(tvEpisodes[episode]['hash'])
         imageInfo = {}
-        if (tvEpisodes[episode]['user_thumb_url'] != ''):
+        imageTypeToUse = 'show' if (tvEpisodes[episode]['show_thumb_url'] != '' and config['filter_episode_thumbnail_type'] == 'show') else 'season' if (tvEpisodes[episode]['season_thumb_url'] != '' and config['filter_episode_thumbnail_type'] == 'season') else 'episode' if (tvEpisodes[episode]['user_thumb_url'] != '') else ''
+        if (imageTypeToUse == 'episode'):
           imageInfo['thumb'] = tvEpisodes[episode]['user_thumb_url']
           imageInfo = processImage(hash, imageInfo['thumb'], 'episode', tvEpisodes[episode]['season_index'], tvEpisodes[episode]['index'])
-        elif (tvEpisodes[episode]['season_thumb_url'] != ''):
+        elif (imageTypeToUse == 'season'):
           imageInfo['thumb'] = tvEpisodes[episode]['season_thumb_url']
           imageInfo = processImage(hash, imageInfo['thumb'], 'season', tvEpisodes[episode]['season_index'], 0)
-        elif (tvEpisodes[episode]['show_thumb_url'] != ''):
+        elif (imageTypeToUse == 'show'):
           imageInfo['thumb'] = tvEpisodes[episode]['show_thumb_url']
           imageInfo = processImage(hash, imageInfo['thumb'], 'show', 0, 0)
         
@@ -1017,11 +1067,19 @@ with con:
           if (tvEpisodes[episode][section[0]] in sections[section[0]]['exclude'] or len(set(tvEpisodes[episode][section[0] + '_filter']).intersection(sections[section[0]]['exclude'])) > 0 or (sections[section[0]]['include'] and tvEpisodes[episode][section[0]] not in sections[section[0]]['include'] and len(set(tvEpisodes[episode][section[0] + '_filter']).intersection(sections[section[0]]['include'])) == 0)):
             skipItem = True
           if (sections[section[0]]['show'] and tvEpisodes[episode][section[0]] and tvEpisodes[episode][section[0]] != ''):
-            emailText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + str(tvEpisodes[episode][section[0]]).decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
-            htmlText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + str(tvEpisodes[episode][section[0]]).decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
+            displayText = str(tvEpisodes[episode][section[0]])
+            if ('format' in sections[section[0]] and sections[section[0]]['format'] != ''):
+              displayText = time.strftime(sections[section[0]]['format'], time.strptime(displayText, '%Y-%m-%d %H:%M:%S'))
+            emailText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + displayText.decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
+            htmlText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + displayText.decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
         
         emailText += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
         htmlText += '</div></div><br/>&nbsp;<br/>&nbsp;'
+        
+        titleFilter = []
+        
+        if (tvEpisodes[episode]['show_title'] in config['filter_episodes_exclude'] or len(set(titleFilter).intersection(config['filter_episodes_exclude'])) > 0 or (config['filter_episodes_include'] and tvEpisodes[episode]['show_title'] not in config['filter_episodes_include'] and len(set(titleFilter).intersection(config['filter_episodes_include'])) == 0)):
+          skipItem = True
         
         if (not skipItem):
           episodeCount += 1
