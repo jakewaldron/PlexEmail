@@ -32,22 +32,22 @@ def replaceConfigTokens():
     config['filter_movies_exclude'] = []
     
   if ('filter_shows_include' not in config):
-    config['filter_movies_include'] = []
+    config['filter_shows_include'] = []
     
   if ('filter_shows_exclude' not in config):
-    config['filter_movies_exclude'] = []
+    config['filter_shows_exclude'] = []
     
   if ('filter_seasons_include' not in config):
-    config['filter_movies_include'] = []
+    config['filter_seasons_include'] = []
     
   if ('filter_seasons_exclude' not in config):
-    config['filter_movies_exclude'] = []
+    config['filter_seasons_exclude'] = []
     
   if ('filter_episodes_include' not in config):
-    config['filter_movies_include'] = []
+    config['filter_episodes_include'] = []
     
   if ('filter_episodes_exclude' not in config):
-    config['filter_movies_exclude'] = []
+    config['filter_episodes_exclude'] = []
     
   if ('filter_episode_thumbnail_type' not in config):
     config['filter_episode_thumbnail_type'] = 'episode'
@@ -224,7 +224,7 @@ def getSharedUserEmails():
   headers = {'Accept': 'application/json', 'X-Plex-Token': token}
   response = requests.get(url, headers=headers)
   
-  parsed = XML(response.text)
+  parsed = XML(response.text.encode('ascii', 'ignore'))
   for elem in parsed:
     for name, value in sorted(elem.attrib.items()):
       if (name == 'email'):
