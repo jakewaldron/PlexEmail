@@ -1,3 +1,5 @@
+<span class="badge-paypal"><a href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=FNHMYELJM8Q4U&lc=US&item_name=Plex%20Email&currency_code=USD&bn=PP-DonationsBF%3Abtn_donate_LG.gif%3ANonHosted" title="Donate to this project using Paypal"><img src="https://img.shields.io/badge/Donate-Paypal-F9AA03.svg" alt="PayPal donate button" /></a></span>
+
 Plex Email
 ==========
 
@@ -7,6 +9,7 @@ This script aggregates all new TV and movie releases for the past x days and wri
 ## Supported Environments
 * Windows - Tested
 * Linux - Tested
+* FreeBSD/FreeNAS - Tested
 * Mac - Tested
 
 ## Supported Email Protocols
@@ -40,6 +43,12 @@ This script aggregates all new TV and movie releases for the past x days and wri
 
 https://forums.plex.tv/index.php/topic/151619-plexemail-in-development/page-7#entry879778
 
+## Installation (FreeNAS)
+
+Thanks to [adrianwi](https://forums.plex.tv/profile/adrianwi):
+
+https://forums.freenas.org/index.php?threads/guide-for-installing-plexemail.40748/#post-257799
+
 ## Usage
 
 #### Normal Usage
@@ -50,7 +59,7 @@ python plexEmail.py
 
 #### Alternate Usage
 
-Pass in an alternate config file.  For example the default config file sends out a daily email (using Cloudinary), while an alternate config file is set up for a weekly web page.
+Pass in an alternate config file. For example, the default config file sends out a daily email (using Cloudinary), while an alternate config file is set up for a weekly web page.
 
 ```
 python plexEmail.py -c C:\files\plexEmailWeekly.conf

@@ -25,6 +25,77 @@ from xml.etree.ElementTree import XML
 
 def replaceConfigTokens():
   ## The below code is for backwards compatibility
+  if ('artist_sort_1' not in config.keys() or config['artist_sort_1'] == ""):
+    config['artist_sort_1'] = 'title_sort'
+    
+  if ('artist_sort_1_reverse' not in config.keys() or config['artist_sort_1_reverse'] == ""):
+    config['artist_sort_1_reverse'] = False
+  if ('artist_sort_2_reverse' not in config.keys() or config['artist_sort_2_reverse'] == ""):
+    config['artist_sort_2_reverse'] = False
+  if ('artist_sort_3_reverse' not in config.keys() or config['artist_sort_3_reverse'] == ""):
+    config['artist_sort_3_reverse'] = False
+    
+  if ('album_sort_1' not in config.keys() or config['album_sort_1'] == ""):
+    config['album_sort_1'] = 'title_sort'
+    
+  if ('album_sort_1_reverse' not in config.keys() or config['album_sort_1_reverse'] == ""):
+    config['album_sort_1_reverse'] = False
+  if ('album_sort_2_reverse' not in config.keys() or config['album_sort_2_reverse'] == ""):
+    config['album_sort_2_reverse'] = False
+  if ('album_sort_3_reverse' not in config.keys() or config['album_sort_3_reverse'] == ""):
+    config['album_sort_3_reverse'] = False
+    
+  if ('msg_new_artists_header' not in config):
+    config['msg_new_artists_header'] = 'New Artists'
+    
+  if ('msg_new_albums_header' not in config):
+    config['msg_new_albums_header'] = 'New Albums'
+    
+  if ('msg_new_songs_header' not in config):
+    config['msg_new_songs_header'] = 'New Songs'
+    
+  if ('msg_artists_link' not in config):
+    config['msg_artists_link'] = 'Artists'
+    
+  if ('msg_albums_link' not in config):
+    config['msg_albums_link'] = 'Albums'
+    
+  if ('msg_songs_link' not in config):
+    config['msg_songs_link'] = 'Songs'
+    
+  if ('filter_show_artists' not in config):
+    config['filter_show_artists'] = False
+    
+  if ('filter_show_albums' not in config):
+    config['filter_show_albums'] = False
+    
+  if ('filter_show_songs' not in config):
+    config['filter_show_songs'] = False
+    
+  if ('filter_sections_Music' not in config):
+    config['filter_sections_Music'] = {'tagline':{'order':1,'show':False,'preText':'<i>','postText':'</i>','include':[],'exclude':[]},'summary':{'order':2,'show':True,'preText':'','postText':'','include':[],'exclude':[]},'tags_genre':{'order':3,'show':True,'preText':'Genre(s): ','postText':'','include':[],'exclude':[]},'tags_director':{'order':4,'show':False,'preText':'Director: ','postText':'','include':[],'exclude':[]},'tags_star':{'order':5,'show':False,'preText':'Star(s): ','postText':'','include':[],'exclude':[]},'content_rating':{'order':6,'show':False,'preText':'ContentRating: ','postText':'','include':[],'exclude':[]},'duration':{'order':7,'show':True,'preText':'Runtime: ','postText':' minutes','include':[],'exclude':[]},'year':{'order':8,'show':False,'preText':'Year: ','postText':'','include':[],'exclude':[]},'studio':{'order':9,'show':True,'preText':'Network: ','postText':'','include':[],'exclude':[]},'rating':{'order':10,'show':False,'preText':'Rating: ','postText':'%','include':[],'exclude':[]}}
+    
+  if ('filter_artists_include' not in config):
+    config['filter_artists_include'] = []
+    
+  if ('filter_artists_exclude' not in config):
+    config['filter_artists_exclude'] = []
+    
+  if ('filter_albums_include' not in config):
+    config['filter_albums_include'] = []
+    
+  if ('filter_albums_exclude' not in config):
+    config['filter_albums_exclude'] = []
+    
+  if ('filter_songs_include' not in config):
+    config['filter_songs_include'] = []
+    
+  if ('filter_songs_exclude' not in config):
+    config['filter_songs_exclude'] = []
+    
+  if ('filter_song_thumbnail_type' not in config):
+    config['filter_song_thumbnail_type'] = 'album'
+    
   if ('filter_movies_include' not in config):
     config['filter_movies_include'] = []
     
@@ -224,7 +295,7 @@ def getSharedUserEmails():
   headers = {'Accept': 'application/json', 'X-Plex-Token': token}
   response = requests.get(url, headers=headers)
   
-  parsed = XML(response.text.encode('ascii', 'ignore'))
+  parsed = XML(response.text)
   for elem in parsed:
     for name, value in sorted(elem.attrib.items()):
       if (name == 'email'):
@@ -240,6 +311,7 @@ def deleteImages():
   
 def processImage(imageHash, thumb, mediaType, seasonIndex, episodeIndex):
   thumbObj = {}
+  imgLocation = ''
   if (not thumb or thumb == ''):
     thumbObj['webImgPath'] = ''
     thumbObj['emailImgPath'] = ''
@@ -247,7 +319,8 @@ def processImage(imageHash, thumb, mediaType, seasonIndex, episodeIndex):
   
   if (thumb.find('http://') >= 0):
     thumbObj['webImgPath'] = thumb
-    thumbObj['emailImgPath'] = thumb  
+    thumbObj['emailImgPath'] = thumb
+    return thumbObj
   else:
     if (thumb.find('media://') >= 0):
       thumb = thumb[8:len(thumb)]
@@ -278,6 +351,12 @@ def processImage(imageHash, thumb, mediaType, seasonIndex, episodeIndex):
       elif (mediaType == 'episode'):
         indexer = thumb[thumb.index('thumbs/') + 7:thumb.index('_')]
         imgLocation = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Metadata' + os.path.sep + 'TV Shows' + os.path.sep + imageHash[0] + os.path.sep + imageHash[1:len(imageHash)] + '.bundle' + os.path.sep + 'Contents' + os.path.sep + indexer + os.path.sep + 'seasons' + os.path.sep + str(seasonIndex) + os.path.sep + 'episodes' + os.path.sep + str(episodeIndex) + os.path.sep + 'thumbs' + os.path.sep + imgName
+      elif (mediaType == 'artist'):
+        indexer = thumb[thumb.index('posters/') + 8:thumb.index('_')]
+        imgLocation = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Metadata' + os.path.sep + 'Artists' + os.path.sep + imageHash[0] + os.path.sep + imageHash[1:len(imageHash)] + '.bundle' + os.path.sep + 'Contents' + os.path.sep + indexer + os.path.sep + 'posters' + os.path.sep + imgName
+      elif (mediaType == 'album'):
+        indexer = thumb[thumb.index('posters/') + 8:thumb.index('_')]
+        imgLocation = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Metadata' + os.path.sep + 'Albums' + os.path.sep + imageHash[0] + os.path.sep + imageHash[1:len(imageHash)] + '.bundle' + os.path.sep + 'Contents' + os.path.sep + indexer + os.path.sep + 'posters' + os.path.sep + imgName
       imgName += '_' + imageHash
     webImgFullPath = config['web_domain'] + config['web_path'] + '/images/' + imgName + '.jpg'
     img = config['web_folder'] + config['web_path'] + os.path.sep + 'images' + os.path.sep + imgName + '.jpg'
@@ -484,6 +563,12 @@ def createEmailHTML():
     emailText += emailTVSeasons + '<br/>&nbsp;'
   if (episodeCount > 0 and config['filter_show_episodes']):
     emailText += emailTVEpisodes
+  if (artistCount > 0 and config['filter_show_artists']):
+    emailText += emailArtists + '<br/>&nbsp;'
+  if (albumCount > 0 and config['filter_show_albums']):
+    emailText += emailAlbums + '<br/>&nbsp;'
+  if (songCount > 0 and config['filter_show_songs']):
+    emailText += emailSongs
     
   if(not hasNewContent):
     emailText += """<div class="headline" style="background: #FFF !important; padding-top: 50px !important; padding-bottom: 50px !important;">
@@ -588,6 +673,23 @@ def createWebHTML():
                           <li>
                               <a href="#episodes-top">""" + config['msg_episodes_link'] + """</a>
                           </li>"""
+  
+  if (artistCount > 0 and config['filter_show_artists']):
+    htmlText += """
+                          <li>
+                              <a href="#artists-top">""" + config['msg_artists_link'] + """</a>
+                          </li>"""
+  if (albumCount > 0 and config['filter_show_albums']):
+    htmlText += """
+                          <li>
+                              <a href="#albums-top">""" + config['msg_albums_link'] + """</a>
+                          </li>"""
+  if (songCount > 0 and config['filter_show_songs']):
+    htmlText += """
+                          <li>
+                              <a href="#songs-top">""" + config['msg_songs_link'] + """</a>
+                          </li>"""
+                          
   htmlText += """
                       </ul>
                   </div>
@@ -618,6 +720,12 @@ def createWebHTML():
     htmlText += htmlTVSeasons + '<br/>&nbsp;'
   if (episodeCount > 0 and config['filter_show_episodes']):
     htmlText += htmlTVEpisodes
+  if (artistCount > 0 and config['filter_show_artists']):
+    htmlText += htmlArtists + '<br/>&nbsp;'
+  if (albumCount > 0 and config['filter_show_albums']):
+    htmlText += htmlAlbums + '<br/>&nbsp;'
+  if (songCount > 0 and config['filter_show_songs']):
+    htmlText += htmlSongs
     
   if(not hasNewContent):
     htmlText += """<div class="headline" style="background: #FFF !important; padding-top: 50px !important;">
@@ -725,7 +833,7 @@ with con:
     dateSearch = 'datetime(\'now\', \'localtime\', \'-' + str(config['date_days_back_to_search']) + ' days\', \'-' + str(config['date_hours_back_to_search']) + ' hours\', \'-' + str(config['date_minutes_back_to_search']) + ' minutes\')'
 
     cur = con.cursor()    
-    cur.execute("SELECT MD.id, MD.parent_id, MD.metadata_type, MD.title, MD.title_sort, MD.original_title, MD.rating, MD.tagline, MD.summary, MD.content_rating, MD.duration, MD.user_thumb_url, MD.tags_genre, MD.tags_director, MD.tags_star, MD.year, MD.hash, MD.[index], MD.studio, ME.duration, MD.originally_available_at FROM metadata_items MD LEFT OUTER JOIN media_items ME ON MD.id = ME.metadata_item_id WHERE added_at >= " + dateSearch + " AND metadata_type >= 1 AND metadata_type <= 4 " + libraryFilter + " ORDER BY title_sort;")
+    cur.execute("SELECT MD.id, MD.parent_id, MD.metadata_type, MD.title, MD.title_sort, MD.original_title, MD.rating, MD.tagline, MD.summary, MD.content_rating, MD.duration, MD.user_thumb_url, MD.tags_genre, MD.tags_director, MD.tags_star, MD.year, MD.hash, MD.[index], MD.studio, ME.duration, MD.originally_available_at FROM metadata_items MD LEFT OUTER JOIN media_items ME ON MD.id = ME.metadata_item_id WHERE added_at >= " + dateSearch + " AND metadata_type >= 1 AND metadata_type <= 10 " + libraryFilter + " ORDER BY title_sort;")
 
     response = {};
     for row in cur:
@@ -745,34 +853,61 @@ with con:
         </div>"""
     emailTVShows = """<div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
           <h1 style="width: 100%; text-align: center; background: #FFF !important;"><font style="color: #F9AA03;">""" + config['msg_new_shows_header'] + """</font></h1>
-        </div><hr class="featurette-divider" id="movies-top"><br/>&nbsp;"""
+        </div><hr class="featurette-divider" id="shows-top"><br/>&nbsp;"""
     htmlTVShows = """<hr class="featurette-divider" id="shows-top">
     <div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
           <h2 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">""" + config['msg_new_shows_header'] + """</h2>
         </div>"""
     emailTVSeasons = """<div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
           <h1 style="width: 100%; text-align: center; background: #FFF !important;"><font style="color: #F9AA03;">""" + config['msg_new_seasons_header'] + """</font></h1>
-        </div><hr class="featurette-divider" id="movies-top"><br/>&nbsp;"""
+        </div><hr class="featurette-divider" id="seasons-top"><br/>&nbsp;"""
     htmlTVSeasons = """<hr class="featurette-divider" id="seasons-top">
     <div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
           <h2 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">""" + config['msg_new_seasons_header'] + """</h2>
         </div>"""
     emailTVEpisodes = """<div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
           <h1 style="width: 100%; text-align: center; background: #FFF !important;"><font style="color: #F9AA03;">""" + config['msg_new_episodes_header'] + """</font></h1>
-        </div><hr class="featurette-divider" id="movies-top"><br/>&nbsp;"""
+        </div><hr class="featurette-divider" id="episodes-top"><br/>&nbsp;"""
     htmlTVEpisodes = """<hr class="featurette-divider" id="episodes-top">
     <div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
           <h2 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">""" + config['msg_new_episodes_header'] + """</h2>
+        </div>"""
+    emailArtists = """<div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
+          <h1 style="width: 100%; text-align: center; background: #FFF !important;"><font style="color: #F9AA03;">""" + config['msg_new_artists_header'] + """</font></h1>
+        </div><hr class="featurette-divider" id="artists-top"><br/>&nbsp;"""
+    htmlArtists = """<hr class="featurette-divider" id="artists-top">
+    <div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
+          <h2 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">""" + config['msg_new_artists_header'] + """</h2>
+        </div>"""
+    emailAlbums = """<div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
+          <h1 style="width: 100%; text-align: center; background: #FFF !important;"><font style="color: #F9AA03;">""" + config['msg_new_albums_header'] + """</font></h1>
+        </div><hr class="featurette-divider" id="albums-top"><br/>&nbsp;"""
+    htmlAlbums= """<hr class="featurette-divider" id="albums-top">
+    <div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
+          <h2 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">""" + config['msg_new_albums_header'] + """</h2>
+        </div>"""
+    emailSongs = """<div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
+          <h1 style="width: 100%; text-align: center; background: #FFF !important;"><font style="color: #F9AA03;">""" + config['msg_new_songs_header'] + """</font></h1>
+        </div><hr class="featurette-divider" id="songs-top"><br/>&nbsp;"""
+    htmlSongs = """<hr class="featurette-divider" id="songs-top">
+    <div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
+          <h2 style="width: 100%; text-align: center; background: #FFF !important; color: #F9AA03 !important;">""" + config['msg_new_songs_header'] + """</h2>
         </div>"""
     movies = {}
     tvShows = {}
     tvSeasons = {}
     tvEpisodes = {}
+    artists = {}
+    albums = {}
+    songs = {}
     imgNames = {}
     movieCount = 0
     showCount = 0
     seasonCount = 0
     episodeCount = 0
+    artistCount = 0
+    albumCount = 0
+    songCount = 0
     if (config['web_enabled'] and 'web_delete_previous_images' in config and config['web_delete_previous_images']):
       deleteImages()
     for item in response:
@@ -780,6 +915,7 @@ with con:
       if (response[item]['metadata_type'] == 1):
         movies[response[item]['id']] = response[item]
       
+      #TV
       if (response[item]['metadata_type'] == 2):
         tvShows[response[item]['id']] = response[item]
       
@@ -788,6 +924,16 @@ with con:
       
       if (response[item]['metadata_type'] == 4):
         tvEpisodes[response[item]['id']] = response[item]
+      
+      #Music      
+      if (response[item]['metadata_type'] == 8):
+        artists[response[item]['id']] = response[item]
+      
+      if (response[item]['metadata_type'] == 9):
+        albums[response[item]['id']] = response[item]
+      
+      if (response[item]['metadata_type'] == 10):
+        songs[response[item]['id']] = response[item]
         
     if ('movie_sort_3' in config and config['movie_sort_3'] != ''):
       movies = OrderedDict(sorted(movies.iteritems(), key=lambda t: t[1][config['movie_sort_3']], reverse=config['movie_sort_3_reverse']))
@@ -973,8 +1119,11 @@ with con:
         if (tvSeasons[season][section[0]] in sections[section[0]]['exclude'] or len(set(tvSeasons[season][section[0] + '_filter']).intersection(sections[section[0]]['exclude'])) > 0 or (sections[section[0]]['include'] and tvSeasons[season][section[0]] not in sections[section[0]]['include'] and len(set(tvSeasons[season][section[0] + '_filter']).intersection(sections[section[0]]['include'])) == 0)):
           skipItem = True
         if (sections[section[0]]['show'] and tvSeasons[season][section[0]] and tvSeasons[season][section[0]] != ''):
-          emailText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + str(tvSeasons[season][section[0]]).decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
-          htmlText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + str(tvSeasons[season][section[0]]).decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
+          displayText = str(tvSeasons[season][section[0]])
+          if ('format' in sections[section[0]] and sections[section[0]]['format'] != ''):
+            displayText = time.strftime(sections[section[0]]['format'], time.strptime(displayText, '%Y-%m-%d %H:%M:%S'))
+          emailText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + displayText.decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
+          htmlText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + displayText.decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
       
       emailText += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
       htmlText += '</div></div><br/>&nbsp;<br/>&nbsp;'
@@ -988,7 +1137,7 @@ with con:
         seasonCount += 1
         emailTVSeasons += emailText
         htmlTVSeasons += htmlText
-      
+  
     for episode in tvEpisodes:
       cur2 = con.cursor()
       cur2.execute("SELECT user_thumb_url, parent_id, [index] FROM metadata_items WHERE id = " + str(tvEpisodes[episode]['parent_id']) + ";")
@@ -1086,7 +1235,248 @@ with con:
           emailTVEpisodes += emailText
           htmlTVEpisodes += htmlText
 
-    if ((movieCount > 0 and config['filter_show_movies']) or (showCount > 0 and config['filter_show_shows']) or (seasonCount > 0 and config['filter_show_seasons']) or (episodeCount > 0 and config['filter_show_episodes'])):
+    if ('artist_sort_3' in config and config['artist_sort_3'] != ''):
+      artists = OrderedDict(sorted(artists.iteritems(), key=lambda t: t[1][config['artist_sort_3']], reverse=config['artist_sort_3_reverse']))
+    if ('artist_sort_2' in config and config['artist_sort_2'] != ''):
+      artists = OrderedDict(sorted(artists.iteritems(), key=lambda t: t[1][config['artist_sort_2']], reverse=config['artist_sort_2_reverse']))
+    if ('artist_sort_1' in config and config['artist_sort_1'] != ''):
+      artists = OrderedDict(sorted(artists.iteritems(), key=lambda t: t[1][config['artist_sort_1']], reverse=config['artist_sort_1_reverse']))
+    
+    for artist in artists:
+      artists[artist] = convertToHumanReadable(artists[artist])
+      title = ''
+      if (artists[artist]['original_title'] != ''):
+        title += artists[artist]['original_title'] + ' AKA '
+      title += artists[artist]['title']
+      hash = str(artists[artist]['hash'])
+      imageInfo = {}
+      imageInfo['thumb'] = artists[artist]['user_thumb_url']
+      imageInfo = processImage(hash, imageInfo['thumb'], 'artist', 0, 0)
+      
+      skipItem = False
+      emailText = ''
+      htmlText = ''
+      if (config['filter_include_plex_web_link']):
+        pwLink = plexWebLink + str(artists[artist]['id'])
+      else:
+        pwLink = ''
+      
+      emailText += '<table><tr width="100%">'
+      if (config['filter_show_email_images']):
+        emailText += '<td width="200"><a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a></td>'
+      emailText += '<td><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + pwLink + '">' + title.decode('utf-8') + '</a></h2>'
+      htmlText += '<div class="featurette" id="artists">'
+      htmlText += '<a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px"></a>'
+      htmlText += '<div style="margin-left: 200px;"><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + pwLink + '">' + title.decode('utf-8') + '</a></h2>'
+      
+      sections = config['filter_sections_Music']
+      for section in sorted(sections.iteritems(), key=lambda t: t[1]['order']):
+        if (artists[artist][section[0]] in sections[section[0]]['exclude'] or len(set(artists[artist][section[0] + '_filter']).intersection(sections[section[0]]['exclude'])) > 0 or (sections[section[0]]['include'] and artists[artist][section[0]] not in sections[section[0]]['include'] and len(set(artists[artist][section[0] + '_filter']).intersection(sections[section[0]]['include'])) == 0)):
+          skipItem = True
+        if (sections[section[0]]['show'] and artists[artist][section[0]] and artists[artist][section[0]] != ''):
+          displayText = str(artists[artist][section[0]])
+          if ('format' in sections[section[0]] and sections[section[0]]['format'] != ''):
+            displayText = time.strftime(sections[section[0]]['format'], time.strptime(displayText, '%Y-%m-%d %H:%M:%S'))
+          emailText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + displayText.decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
+          htmlText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + displayText.decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
+      
+      emailText += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
+      htmlText += '</div></div><br/>&nbsp;<br/>&nbsp;'
+      
+      titleFilter = []
+        
+      if (artists[artist]['title'] in config['filter_artists_exclude'] or len(set(titleFilter).intersection(config['filter_artists_exclude'])) > 0 or (config['filter_artists_include'] and artists[artist]['title'] not in config['filter_artists_include'] and len(set(titleFilter).intersection(config['filter_artists_include'])) == 0)):
+        skipItem = True
+        
+      if (not skipItem):
+        artistCount += 1
+        emailArtists += emailText
+        htmlArtists += htmlText
+  
+    for album in albums:
+      cur2 = con.cursor()
+      cur2.execute("SELECT title, title_sort, original_title, rating, tagline, summary, content_rating, duration, tags_genre, tags_director, tags_star, year, hash, user_thumb_url, studio FROM metadata_items WHERE id = " + str(albums[album]['parent_id']) + ";")
+
+      for row in cur2:
+        albums[album]['title'] = row[0] + ' - ' + albums[album]['title']
+        albums[album]['title_sort'] = row[1] + ' - ' + albums[album]['title_sort']
+        albums[album]['original_title'] = row[2]
+        albums[album]['rating'] = row[3]
+        albums[album]['tagline'] = row[4]
+        albums[album]['summary'] = row[5]
+        albums[album]['content_rating'] = row[6]
+        albums[album]['duration'] = row[7]
+        albums[album]['tags_genre'] = row[8]
+        albums[album]['tags_director'] = row[9]
+        albums[album]['tags_star'] = row[10]
+        albums[album]['year'] = row[11]
+        albums[album]['parent_hash'] = row[12]
+        albums[album]['parent_thumb_url'] = row[13]
+        albums[album]['studio'] = row[14]
+          
+    if ('album_sort_3' in config and config['album_sort_3'] != ''):
+      albums = OrderedDict(sorted(albums.iteritems(), key=lambda t: t[1][config['album_sort_3']], reverse=config['album_sort_3_reverse']))
+    if ('album_sort_2' in config and config['album_sort_2'] != ''):
+      albums = OrderedDict(sorted(albums.iteritems(), key=lambda t: t[1][config['album_sort_2']], reverse=config['album_sort_2_reverse']))
+    if ('album_sort_1' in config and config['album_sort_1'] != ''):
+      albums = OrderedDict(sorted(albums.iteritems(), key=lambda t: t[1][config['album_sort_1']], reverse=config['album_sort_1_reverse']))
+    
+    for album in albums:
+      albums[album] = convertToHumanReadable(albums[album])
+      title = ''
+      if (albums[album]['original_title'] != ''):
+        title += albums[album]['original_title'] + ' AKA '
+      title += albums[album]['title']
+      imageInfo = {}
+      if (albums[album]['user_thumb_url'] != ''):
+        imageInfo['thumb'] = albums[album]['user_thumb_url']
+        imageInfo = processImage(str(albums[album]['hash']), imageInfo['thumb'], 'album', albums[album]['index'], 0)
+      else:
+        imageInfo['thumb'] = albums[album]['parent_thumb_url']
+        imageInfo = processImage(str(albums[album]['parent_hash']), imageInfo['thumb'], 'artist', 0, 0)
+
+      skipItem = False
+      emailText = ''
+      htmlText = ''
+      if (config['filter_include_plex_web_link']):
+        pwLink = plexWebLink + str(albums[album]['id'])
+      else:
+        pwLink = ''
+      
+      emailText += '<table><tr width="100%">'
+      if (config['filter_show_email_images']):
+        emailText += '<td width="200"><a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a></td>'
+      emailText += '<td><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + pwLink + '">' + title.decode('utf-8') + '</a></h2>'
+      htmlText += '<div class="featurette" id="albums">'
+      htmlText += '<a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px"></a>'
+      htmlText += '<div style="margin-left: 200px;"><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + pwLink + '">' + title.decode('utf-8') + '</a></h2>'
+      
+      sections = config['filter_sections_Music']
+      for section in sorted(sections.iteritems(), key=lambda t: t[1]['order']):
+        if (albums[album][section[0]] in sections[section[0]]['exclude'] or len(set(albums[album][section[0] + '_filter']).intersection(sections[section[0]]['exclude'])) > 0 or (sections[section[0]]['include'] and albums[album][section[0]] not in sections[section[0]]['include'] and len(set(albums[album][section[0] + '_filter']).intersection(sections[section[0]]['include'])) == 0)):
+          skipItem = True
+        if (sections[section[0]]['show'] and albums[album][section[0]] and albums[album][section[0]] != ''):
+          displayText = str(albums[album][section[0]])
+          if ('format' in sections[section[0]] and sections[section[0]]['format'] != ''):
+            displayText = time.strftime(sections[section[0]]['format'], time.strptime(displayText, '%Y-%m-%d %H:%M:%S'))
+          emailText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + displayText.decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
+          htmlText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + displayText.decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
+      
+      emailText += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
+      htmlText += '</div></div><br/>&nbsp;<br/>&nbsp;'
+      
+      titleFilter = []
+        
+      if (albums[album]['title'] in config['filter_albums_exclude'] or len(set(titleFilter).intersection(config['filter_albums_exclude'])) > 0 or (config['filter_albums_include'] and albums[album]['title'] not in config['filter_albums_include'] and len(set(titleFilter).intersection(config['filter_albums_include'])) == 0)):
+        skipItem = True
+          
+      if (not skipItem):
+        albumCount += 1
+        emailAlbums += emailText
+        htmlAlbums += htmlText
+
+    # for song in songs:
+      # cur2 = con.cursor()
+      # cur2.execute("SELECT user_thumb_url, parent_id, [index] FROM metadata_items WHERE id = " + str(songs[song]['parent_id']) + ";")
+
+      # for row in cur2:
+        # songs[song]['season_thumb_url'] = row[0]
+        # parent_id = row[1]
+        # songs[song]['season_index'] = row[2]
+        
+        # cur3 = con.cursor()
+        # cur3.execute("SELECT title, title_sort, original_title, content_rating, duration, tags_genre, tags_star, hash, user_thumb_url, studio FROM metadata_items WHERE id = " + str(parent_id) + ";")
+        
+        # for row2 in cur3:
+          # songs[song]['show_title'] = row2[0]
+          # songs[song]['show_title_sort'] = row2[1]
+          # songs[song]['show_original_title'] = row2[2]
+          # songs[song]['content_rating'] = row2[3]
+          # songs[song]['duration'] = row2[4]
+          # songs[song]['tags_genre'] = row2[5]
+          # songs[song]['tags_star'] = row2[6]
+          # songs[song]['hash'] = row2[7]
+          # songs[song]['show_thumb_url'] = row2[8]
+          # songs[song]['studio'] = row2[9]
+          
+    # if ('song_sort_3' in config and config['song_sort_3'] != ''):
+      # songs = OrderedDict(sorted(songs.iteritems(), key=lambda t: t[1][config['song_sort_3']], reverse=config['song_sort_3_reverse']))
+    # if ('song_sort_2' in config and config['song_sort_2'] != ''):
+      # songs = OrderedDict(sorted(songs.iteritems(), key=lambda t: t[1][config['song_sort_2']], reverse=config['song_sort_2_reverse']))
+    # if ('song_sort_1' in config and config['song_sort_1'] != ''):
+      # songs = OrderedDict(sorted(songs.iteritems(), key=lambda t: t[1][config['song_sort_1']], reverse=config['song_sort_1_reverse']))
+    
+    # for song in songs:
+      # if (songs[song]['parent_id'] not in tvSeasons):
+        # songs[song] = convertToHumanReadable(songs[song])
+        # showTitle = ''
+        # if (songs[song]['show_original_title'] != ''):
+          # showTitle += songs[song]['show_original_title'] + ' AKA '
+        # showTitle += songs[song]['show_title']
+        # title = ''
+        # if (songs[song]['original_title'] != ''):
+          # title += songs[song]['original_title'] + ' AKA '
+        # title += songs[song]['title']
+        # hash = str(songs[song]['hash'])
+        # imageInfo = {}
+        # imageTypeToUse = 'album' if (songs[song]['show_thumb_url'] != '' and config['filter_song_thumbnail_type'] == 'show') else 'season' if (songs[song]['season_thumb_url'] != '' and config['filter_song_thumbnail_type'] == 'season') else 'song' if (songs[song]['user_thumb_url'] != '') else ''
+        # print imageTypeToUse
+        # if (imageTypeToUse == 'song'):
+          # imageInfo['thumb'] = songs[song]['user_thumb_url']
+          # imageInfo = processImage(hash, imageInfo['thumb'], 'episode', songs[song]['season_index'], songs[song]['index'])
+        # elif (imageTypeToUse == 'album'):
+          # imageInfo['thumb'] = songs[song]['season_thumb_url']
+          # print songs[song]['season_thumb_url']
+          # imageInfo = processImage(hash, imageInfo['thumb'], 'season', songs[song]['season_index'], 0)
+        # elif (imageTypeToUse == 'artist'):
+          # imageInfo['thumb'] = songs[song]['show_thumb_url']
+          # imageInfo = processImage(hash, imageInfo['thumb'], 'show', 0, 0)
+        
+        # print imageInfo
+        # print 
+        # skipItem = False
+        # emailText = ''
+        # htmlText = ''
+        # if (config['filter_include_plex_web_link']):
+          # pwLink = plexWebLink + str(songs[song]['id'])
+        # else:
+          # pwLink = ''
+      
+        # emailText += '<table><tr width="100%">'
+        # if (config['filter_show_email_images']):
+          # emailText += '<td width="200"><a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a></td>'
+        # emailText += '<td><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + pwLink + '">' + showTitle.decode('utf-8') + '</a></h2>'
+        # emailText += '<p class="lead"><i>S' + str(songs[song]['season_index']) + ' E' + str(songs[song]['index']) + ': ' + title.decode('utf-8') + '</i></p>'
+        # htmlText += '<div class="featurette" id="shows">'
+        # htmlText += '<a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px"></a>'
+        # htmlText += '<div style="margin-left: 200px;"><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + pwLink + '">' + showTitle.decode('utf-8') + '</a></h2>'
+        # htmlText += '<p class="lead"><i>S' + str(songs[song]['season_index']) + ' E' + str(songs[song]['index']) + ': ' + title.decode('utf-8') + '</i></p>'
+        
+        # sections = config['filter_sections_TV']
+        # for section in sorted(sections.iteritems(), key=lambda t: t[1]['order']):
+          # if (songs[song][section[0]] in sections[section[0]]['exclude'] or len(set(songs[song][section[0] + '_filter']).intersection(sections[section[0]]['exclude'])) > 0 or (sections[section[0]]['include'] and songs[song][section[0]] not in sections[section[0]]['include'] and len(set(songs[song][section[0] + '_filter']).intersection(sections[section[0]]['include'])) == 0)):
+            # skipItem = True
+          # if (sections[section[0]]['show'] and songs[song][section[0]] and songs[song][section[0]] != ''):
+            # displayText = str(songs[song][section[0]])
+            # if ('format' in sections[section[0]] and sections[section[0]]['format'] != ''):
+              # displayText = time.strftime(sections[section[0]]['format'], time.strptime(displayText, '%Y-%m-%d %H:%M:%S'))
+            # emailText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + displayText.decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
+            # htmlText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + displayText.decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
+        
+        # emailText += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
+        # htmlText += '</div></div><br/>&nbsp;<br/>&nbsp;'
+        
+        # titleFilter = []
+        
+        # if (songs[song]['show_title'] in config['filter_songs_exclude'] or len(set(titleFilter).intersection(config['filter_songs_exclude'])) > 0 or (config['filter_songs_include'] and songs[song]['show_title'] not in config['filter_songs_include'] and len(set(titleFilter).intersection(config['filter_songs_include'])) == 0)):
+          # skipItem = True
+        
+        # if (not skipItem):
+          # songCount += 1
+          # emailSongs += emailText
+          # htmlSongs += htmlText
+        
+    if ((movieCount > 0 and config['filter_show_movies']) or (showCount > 0 and config['filter_show_shows']) or (seasonCount > 0 and config['filter_show_seasons']) or (episodeCount > 0 and config['filter_show_episodes']) or (artistCount > 0 and config['filter_show_artists']) or (albumCount > 0 and config['filter_show_albums']) or (songCount > 0 and config['filter_show_songs'])):
       hasNewContent = True
     else:
       hasNewContent = False
