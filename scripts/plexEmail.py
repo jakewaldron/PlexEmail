@@ -1271,14 +1271,15 @@ with con:
       
       sections = config['filter_sections_Music']
       for section in sorted(sections.iteritems(), key=lambda t: t[1]['order']):
-        if (artists[artist][section[0]] in sections[section[0]]['exclude'] or len(set(artists[artist][section[0] + '_filter']).intersection(sections[section[0]]['exclude'])) > 0 or (sections[section[0]]['include'] and artists[artist][section[0]] not in sections[section[0]]['include'] and len(set(artists[artist][section[0] + '_filter']).intersection(sections[section[0]]['include'])) == 0)):
-          skipItem = True
-        if (sections[section[0]]['show'] and artists[artist][section[0]] and artists[artist][section[0]] != ''):
-          displayText = str(artists[artist][section[0]])
-          if ('format' in sections[section[0]] and sections[section[0]]['format'] != ''):
-            displayText = time.strftime(sections[section[0]]['format'], time.strptime(displayText, '%Y-%m-%d %H:%M:%S'))
-          emailText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + displayText.decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
-          htmlText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + displayText.decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
+        if (section[0] != 'track_list'):
+          if (artists[artist][section[0]] in sections[section[0]]['exclude'] or len(set(artists[artist][section[0] + '_filter']).intersection(sections[section[0]]['exclude'])) > 0 or (sections[section[0]]['include'] and artists[artist][section[0]] not in sections[section[0]]['include'] and len(set(artists[artist][section[0] + '_filter']).intersection(sections[section[0]]['include'])) == 0)):
+            skipItem = True
+          if (sections[section[0]]['show'] and artists[artist][section[0]] and artists[artist][section[0]] != ''):
+            displayText = str(artists[artist][section[0]])
+            if ('format' in sections[section[0]] and sections[section[0]]['format'] != ''):
+              displayText = time.strftime(sections[section[0]]['format'], time.strptime(displayText, '%Y-%m-%d %H:%M:%S'))
+            emailText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + displayText.decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
+            htmlText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + displayText.decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
       
       emailText += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
       htmlText += '</div></div><br/>&nbsp;<br/>&nbsp;'
@@ -1313,6 +1314,21 @@ with con:
         albums[album]['parent_hash'] = row[12]
         albums[album]['parent_thumb_url'] = row[13]
         albums[album]['studio'] = row[14]
+        
+      cur2 = con.cursor()
+      cur2.execute("SELECT MD.id, MD.title, MD.title_sort, MD.original_title, MD.[index], ME.duration, ME.audio_codec FROM metadata_items MD LEFT OUTER JOIN media_items ME ON MD.id = ME.metadata_item_id WHERE parent_id = " + str(albums[album]['id']) + ";")
+      
+      albums[album]['tracks'] = {}
+      for row in cur2:
+        duration = row[5]/1000
+        seconds = duration % 60
+        duration /= 60
+        minutes = duration % 60
+        duration /= 60
+        hours = duration
+        duration = str(hours) + ':' if (hours > 0) else ''
+        duration += str(minutes).zfill(2) + ':' + str(seconds).zfill(2)
+        albums[album]['tracks'][row[4]] = {'id': row[0], 'title': row[1], 'title_sort': row[2], 'original_title': row[3], 'index': row[4], 'duration': duration, 'codec': row[6]}
           
     if ('album_sort_3' in config and config['album_sort_3'] != ''):
       albums = OrderedDict(sorted(albums.iteritems(), key=lambda t: t[1][config['album_sort_3']], reverse=config['album_sort_3_reverse']))
@@ -1343,27 +1359,45 @@ with con:
       else:
         pwLink = ''
       
-      emailText += '<table><tr width="100%">'
+      emailText += '<table><tr width="100%" style="width: 100% !important">'
       if (config['filter_show_email_images']):
-        emailText += '<td width="200"><a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a></td>'
-      emailText += '<td><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + pwLink + '">' + title.decode('utf-8') + '</a></h2>'
+        emailText += '<td width="200" style="width: 200px !important"><a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['emailImgPath'].decode('utf-8') +'" width="154"></a></td>'
+      emailText += '<td width="1080" style="width: 1080px !important"><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + pwLink + '">' + title.decode('utf-8') + '</a></h2>'
       htmlText += '<div class="featurette" id="albums">'
       htmlText += '<a target="_blank" href="' + pwLink + '"><img class="featurette-image img-responsive pull-left" src="' + imageInfo['webImgPath'].decode('utf-8') + '" width="154px" height="218px"></a>'
       htmlText += '<div style="margin-left: 200px;"><h2 class="featurette-heading"><a target="_blank" style="color: #000000;" href="' + pwLink + '">' + title.decode('utf-8') + '</a></h2>'
       
+      tracklistEmailText = ''
+      tracklistHTMLText = ''
       sections = config['filter_sections_Music']
+      trackCount = 0
       for section in sorted(sections.iteritems(), key=lambda t: t[1]['order']):
-        if (albums[album][section[0]] in sections[section[0]]['exclude'] or len(set(albums[album][section[0] + '_filter']).intersection(sections[section[0]]['exclude'])) > 0 or (sections[section[0]]['include'] and albums[album][section[0]] not in sections[section[0]]['include'] and len(set(albums[album][section[0] + '_filter']).intersection(sections[section[0]]['include'])) == 0)):
-          skipItem = True
-        if (sections[section[0]]['show'] and albums[album][section[0]] and albums[album][section[0]] != ''):
-          displayText = str(albums[album][section[0]])
-          if ('format' in sections[section[0]] and sections[section[0]]['format'] != ''):
-            displayText = time.strftime(sections[section[0]]['format'], time.strptime(displayText, '%Y-%m-%d %H:%M:%S'))
-          emailText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + displayText.decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
-          htmlText += '<p class="lead">' + sections[section[0]]['preText'].decode('utf-8') + displayText.decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
+        if (section[0] == 'track_list'):
+          if (sections[section[0]]['show']):
+            tracklistEmailText += '<br/><table width="100%" style="width: 100% !important"><tr><th align="left" style="text-align: left;">Track#</th><th align="left" style="text-align: left;">Song Name</th><th align="left" style="text-align: left;">Artists</th><th align="right" style="text-align: right;">Duration</th></tr><tr><td colspan="5"><hr></td></tr>'
+            tracklistHTMLText += '<br/><table width="100%" style="width: 100% !important"><tr><th align="left" style="text-align: left;">Track#</th><th align="left" style="text-align: left;">Song Name</th><th align="left" style="text-align: left;">Artists</th><th align="right" style="text-align: right;">Duration</th></tr><tr><td colspan="5"><hr></td></tr>'
+            for track in albums[album]['tracks']:
+              tracklistEmailText += '<tr width="100%" style="width: 100% !important"><td width="5%" style="width: 5% !important" class="track_index">' + str(albums[album]['tracks'][track]['index']).decode('utf-8') + '</td><td width="35%" style="width: 50% !important" class="track_title">' + albums[album]['tracks'][track]['title'].decode('utf-8') + '</td><td width="30%" style="width: 35% !important" class="track_original_title">' + albums[album]['tracks'][track]['original_title'].decode('utf-8') + '</td><td width="15%" align="right" style="width: 15% !important; text-align: right;" class="track_duration">' + str(albums[album]['tracks'][track]['duration']).decode('utf-8') + '</td></tr>'
+              tracklistHTMLText += '<tr width="100%" style="width: 100% !important"><td width="5%" style="width: 5% !important" class="track_index">' + str(albums[album]['tracks'][track]['index']).decode('utf-8') + '</td><td width="35%" style="width: 50% !important" class="track_title">' + albums[album]['tracks'][track]['title'].decode('utf-8') + '</td><td width="35%" style="width: 30% !important" class="track_original_title">' + albums[album]['tracks'][track]['original_title'].decode('utf-8') + '</td><td width="15%" align="right" style="width: 15% !important; text-align: right;" class="track_duration">' + str(albums[album]['tracks'][track]['duration']).decode('utf-8') + '</td></tr>'
+              trackCount += 1
+            tracklistEmailText += '</table>'
+            tracklistHTMLText += '</table>'
+        else:
+          if (albums[album][section[0]] in sections[section[0]]['exclude'] or len(set(albums[album][section[0] + '_filter']).intersection(sections[section[0]]['exclude'])) > 0 or (sections[section[0]]['include'] and albums[album][section[0]] not in sections[section[0]]['include'] and len(set(albums[album][section[0] + '_filter']).intersection(sections[section[0]]['include'])) == 0)):
+            skipItem = True
+          if (sections[section[0]]['show'] and albums[album][section[0]] and albums[album][section[0]] != ''):
+            displayText = str(albums[album][section[0]])
+            if ('format' in sections[section[0]] and sections[section[0]]['format'] != ''):
+              displayText = time.strftime(sections[section[0]]['format'], time.strptime(displayText, '%Y-%m-%d %H:%M:%S'))
+            emailText += '<p style="width: 100% !important" class="lead">' + sections[section[0]]['preText'].decode('utf-8') + displayText.decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
+            htmlText += '<p style="width: 100% !important" class="lead">' + sections[section[0]]['preText'].decode('utf-8') + displayText.decode('utf-8') + sections[section[0]]['postText'].decode('utf-8') + '</p>'
       
-      emailText += '</td></tr></table><br/>&nbsp;<br/>&nbsp;'
-      htmlText += '</div></div><br/>&nbsp;<br/>&nbsp;'
+      emailText += '</td></tr></table>'
+      emailText += tracklistEmailText if (trackCount > 0) else ''
+      emailText += '<br/>&nbsp;<br/>&nbsp;'
+      htmlText += '</div></div>'
+      htmlText += tracklistHTMLText if (trackCount > 0) else ''
+      htmlText += '<br/>&nbsp;<br/>&nbsp;'
       
       titleFilter = []
         
