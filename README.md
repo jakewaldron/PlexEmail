@@ -144,10 +144,18 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * filter_show_episodes - True to show recently added TV episodes
 * filter_episodes_include - List of episodes to include (Anything that does not match perfectly will not be included)
 * filter_episodes_excluse - List of episodes to exclude (Only titles that match perfectly will be excluded)
+* filter_show_artists - True to show recently added TV artists
+* filter_artists_include - List of artists to include (Anything that does not match perfectly will not be included)
+* filter_artists_excluse - List of artists to exclude (Only titles that match perfectly will be excluded)
+* filter_show_albums - True to show recently added albums
+* filter_albums_include - List of albums to include (Anything that does not match perfectly will not be included)
+* filter_albums_excluse - List of albums to exclude (Only titles that match perfectly will be excluded)
 * filter_show_email_images - True to show images in the email
+* filter_episode_thumbnail_type - Type of image to show for new TV Episodes - "episode", "season" or "show" (Defaults to episode)
 * filter_libraries - A list of library names to filter out - ['Home Videos', 'Private']
 * filter_sections_movies - Movie specific filters
 * filter_sections_TV - TV specific filters
+* filter_sections_Music - Music specific filters
   * Possible fields: tagline, summary, content_rating, duration, year, rating, studio, tags_genre, tags_director, tags_star
   * order - The order this field should appear for each title
   * show - Whether or not this field should be shown for each title
@@ -170,10 +178,14 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * msg_shows_link - Header link text to go to new shows
 * msg_seasons_link - Header link text to go to new seasons
 * msg_episodes_link - Header link text to go to new episodes
+* msg_artists_link - Header link text to go to new artists
+* msg_albums_link - Header link text to go to new albums
 * msg_new_movies_header - Section header text for new movies
 * msg_new_shows_header - Section header text for new shows
 * msg_new_seasons_header - Section header text for new seasons
 * msg_new_episodes_header - Section header text for new episodes
+* msg_new_artists_header - Section header text for new artists
+* msg_new_albums_header - Section header text for new albums
 * msg_footer - Footer text at the bottom of the page
 * msg_no_new_content - Message to be displayed if no new content has been added
 
@@ -198,6 +210,20 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * season_sort_2_reverse - Reverse the default sort
 * season_sort_3 - Third Priority sort
 * season_sort_3_reverse - Reverse the default sort
+
+* artist_sort_1 - Highest priority sort
+* artist_sort_1_reverse - Reverse the default sort
+* artist_sort_2 - Second priority sort
+* artist_sort_2_reverse - Reverse the default sort
+* artist_sort_3 - Third Priority sort
+* artist_sort_3_reverse - Reverse the default sort
+
+* album_sort_1 - Highest priority sort
+* album_sort_1_reverse - Reverse the default sort
+* album_sort_2 - Second priority sort
+* album_sort_2_reverse - Reverse the default sort
+* album_sort_3 - Third Priority sort
+* album_sort_3_reverse - Reverse the default sort
 
 * episode_sort_1 - Highest priority sort
 * episode_sort_1_reverse - Reverse the default sort
