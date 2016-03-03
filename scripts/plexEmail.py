@@ -23,7 +23,7 @@ from email.header import Header
 from email.utils import formataddr
 from xml.etree.ElementTree import XML
 
-SCRIPT_VERSION = 'v0.8.2'
+SCRIPT_VERSION = 'v0.8.3'
 
 def replaceConfigTokens():
   ## The below code is for backwards compatibility
