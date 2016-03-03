@@ -77,6 +77,12 @@ Pass a special one-time notice to users
 python plexEmail.py -n "This is a special notice to all users"
 ```
 
+Output the current script version
+
+```
+python plexEmail.py --version
+```
+
 ## Config File
 
 The config file is in the scripts folder.  Before first run of the script, please update this file with your information.
