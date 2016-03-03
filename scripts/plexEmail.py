@@ -772,7 +772,7 @@ parser.add_argument('-n','--notice', help='Add a one-time message to the email/w
 parser.add_argument('--version', help='Display the version of the script file', action='store_true')
 args = vars(parser.parse_args())
 
-if ('version' in args):
+if ('version' in args and args['version']):
   print 'Script Version: ' + SCRIPT_VERSION
   sys.exit()
   
