@@ -23,6 +23,8 @@ from email.header import Header
 from email.utils import formataddr
 from xml.etree.ElementTree import XML
 
+SCRIPT_VERSION = 'v0.8.2'
+
 def replaceConfigTokens():
   ## The below code is for backwards compatibility
   if ('artist_sort_1' not in config.keys() or config['artist_sort_1'] == ""):
@@ -64,16 +66,16 @@ def replaceConfigTokens():
     config['msg_songs_link'] = 'Songs'
     
   if ('filter_show_artists' not in config):
-    config['filter_show_artists'] = False
+    config['filter_show_artists'] = True
     
   if ('filter_show_albums' not in config):
-    config['filter_show_albums'] = False
+    config['filter_show_albums'] = True
     
   if ('filter_show_songs' not in config):
     config['filter_show_songs'] = False
     
   if ('filter_sections_Music' not in config):
-    config['filter_sections_Music'] = {'tagline':{'order':1,'show':False,'preText':'<i>','postText':'</i>','include':[],'exclude':[]},'summary':{'order':2,'show':True,'preText':'','postText':'','include':[],'exclude':[]},'tags_genre':{'order':3,'show':True,'preText':'Genre(s): ','postText':'','include':[],'exclude':[]},'tags_director':{'order':4,'show':False,'preText':'Director: ','postText':'','include':[],'exclude':[]},'tags_star':{'order':5,'show':False,'preText':'Star(s): ','postText':'','include':[],'exclude':[]},'content_rating':{'order':6,'show':False,'preText':'ContentRating: ','postText':'','include':[],'exclude':[]},'duration':{'order':7,'show':True,'preText':'Runtime: ','postText':' minutes','include':[],'exclude':[]},'year':{'order':8,'show':False,'preText':'Year: ','postText':'','include':[],'exclude':[]},'studio':{'order':9,'show':True,'preText':'Network: ','postText':'','include':[],'exclude':[]},'rating':{'order':10,'show':False,'preText':'Rating: ','postText':'%','include':[],'exclude':[]}}
+    config['filter_sections_Music'] = {'tagline':{'order':1,'show':False,'preText':'<i>','postText':'</i>','include':[],'exclude':[]},'summary':{'order':2,'show':True,'preText':'','postText':'','include':[],'exclude':[]},'tags_genre':{'order':3,'show':True,'preText':'Genre(s): ','postText':'','include':[],'exclude':[]},'tags_director':{'order':4,'show':False,'preText':'Director: ','postText':'','include':[],'exclude':[]},'tags_star':{'order':5,'show':False,'preText':'Star(s): ','postText':'','include':[],'exclude':[]},'content_rating':{'order':6,'show':False,'preText':'ContentRating: ','postText':'','include':[],'exclude':[]},'duration':{'order':7,'show':True,'preText':'Runtime: ','postText':' minutes','include':[],'exclude':[]},'year':{'order':8,'show':False,'preText':'Year: ','postText':'','include':[],'exclude':[]},'studio':{'order':9,'show':True,'preText':'Network: ','postText':'','include':[],'exclude':[]},'rating':{'order':10,'show':False,'preText':'Rating: ','postText':'%','include':[],'exclude':[]},'air_date':{'order':11,'show': True,'preText':'Release Date: ','postText':'','include':[],'exclude':[],'format': '%B %d, %Y'},'track_list':{'order':12,'show': True,'headerText':{'trackNumber':'Track#','songName':'Song Name','artistName':'Artist(s)','duration':'Duration'}}}
     
   if ('filter_artists_include' not in config):
     config['filter_artists_include'] = []
@@ -295,7 +297,7 @@ def getSharedUserEmails():
   headers = {'Accept': 'application/json', 'X-Plex-Token': token}
   response = requests.get(url, headers=headers)
   
-  parsed = XML(response.text)
+  parsed = XML(response.text.encode('ascii', 'ignore'))
   for elem in parsed:
     for name, value in sorted(elem.attrib.items()):
       if (name == 'email'):
@@ -767,8 +769,13 @@ parser = argparse.ArgumentParser(description='This script aggregates all new TV 
 parser.add_argument('-c','--configfile', help='The path to a config file to be used in the running of this instance of the script.', default=os.path.dirname(os.path.realpath(sys.argv[0])) + os.path.sep + 'config.conf', required=False)
 parser.add_argument('-t','--test', help='Run this script in test mode - Sends email only to sender', action='store_true')
 parser.add_argument('-n','--notice', help='Add a one-time message to the email/web page')
+parser.add_argument('--version', help='Display the version of the script file', action='store_true')
 args = vars(parser.parse_args())
 
+if ('version' in args):
+  print 'Script Version: ' + SCRIPT_VERSION
+  sys.exit()
+  
 testMode = False
   
 if ('configfile' in args):
