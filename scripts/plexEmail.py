@@ -243,6 +243,13 @@ def replaceConfigTokens():
   if (config['web_domain'].rfind('/') < len(config['web_domain']) - len('/')):
     config['web_domain'] = config['web_domain'] + '/'
     
+  if  (config['date_days_back_to_search'] == 31):
+    now = datetime.datetime.now()
+    if (now.month == 1):
+      config['date_days_back_to_search'] = calendar.monthrange(now.year - 1, 12)[1]
+    else:
+      config['date_days_back_to_search'] = calendar.monthrange(now.year, now.month - 1)[1]
+  
   for value in config:
     if (isinstance(config[value], str)):
       config[value] = config[value].replace('{past_day}', str((date.today() - timedelta(days=config['date_days_back_to_search'], hours=config['date_hours_back_to_search'], minutes=config['date_minutes_back_to_search'])).strftime(config['date_format'])))
