@@ -27,6 +27,9 @@ SCRIPT_VERSION = 'v0.8.3'
 
 def replaceConfigTokens():
   ## The below code is for backwards compatibility
+  if ('upload_cloudinary_api_secret' not in config):
+    config['upload_cloudinary_api_secret'] = True
+    
   if ('artist_sort_1' not in config.keys() or config['artist_sort_1'] == ""):
     config['artist_sort_1'] = 'title_sort'
     
@@ -413,7 +416,8 @@ def uploadToCloudinary(imgToUpload):
       imgToUpload = os.path.realpath(imgToUpload)
     if (imghdr.what(imgToUpload)):
       response = cloudinary.uploader.upload(imgToUpload)
-      return response['url']
+      url = response['secure_url'] if (config['upload_cloudinary_use_https']) else response['url']
+      return url
     else:
       return ''
   else:
@@ -798,7 +802,8 @@ if ('upload_use_cloudinary' in config and config['upload_use_cloudinary']):
   cloudinary.config( 
     cloud_name = config['upload_cloudinary_cloud_name'],
     api_key = config['upload_cloudinary_api_key'],
-    api_secret = config['upload_cloudinary_api_secret']
+    api_secret = config['upload_cloudinary_api_secret'],
+    upload_prefix = 'https://api.cloudinary.com' if ('upload_cloudinary_use_https' in config and config['upload_cloudinary_use_https']) else 'http://api.cloudinary.com'
   )
 
 plexWebLink = ''
