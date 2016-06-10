@@ -1545,6 +1545,9 @@ with con:
         sharedEmails = getSharedUserEmails()
         config['email_to'].extend(x for x in sharedEmails if x not in config['email_to'])
 
+      #Remove duplicates by converting to a set
+      config['email_to'] = set(config['email_to'])
+
       emailCount = 0
       if (testMode):
         success = sendMail([config['email_from']])

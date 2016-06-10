@@ -118,6 +118,7 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * upload_cloudinary_cloud_name - Cloudinary cloud name
 * upload_cloudinary_api_key - Cloudinary api key
 * upload_cloudinary_api_secret - Cloudinary api secret
+* upload_cloudinary_use_https - True to use https and False to use http for both uploading url and image locations in the email/web page
 
 #####Email
 * email_enabled - Enable the creation and sending of an email
