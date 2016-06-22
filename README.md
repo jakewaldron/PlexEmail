@@ -99,6 +99,11 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * date_hours_back_to_search - Number of hours to search backwards
 * date_minutes_back_to_search - Number of minutes to search backwards
 
+#####Logging
+* logging_debug_level - Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+* logging_file_location - Leave blank to use default location - logs folder where the script file resides
+* logging_retain_previous_logs - True to append to the log file or False to overwrite the log file on every run of the script.
+
 #####Plex API Authentication - This is only used for shared user emails currently
 * plex_username - Plex account username of the server
 * plex_password - Plex account password of the server
