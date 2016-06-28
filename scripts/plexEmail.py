@@ -1423,14 +1423,18 @@ with con:
       
       albums[album]['tracks'] = {}
       for row in cur2:
-        duration = row[5]/1000
-        seconds = duration % 60
-        duration /= 60
-        minutes = duration % 60
-        duration /= 60
-        hours = duration
-        duration = str(hours) + ':' if (hours > 0) else ''
-        duration += str(minutes).zfill(2) + ':' + str(seconds).zfill(2)
+        duration = row[5]
+        try:
+          duration /= 1000
+          seconds = duration % 60
+          duration /= 60
+          minutes = duration % 60
+          duration /= 60
+          hours = duration
+          duration = str(hours) + ':' if (hours > 0) else ''
+          duration += str(minutes).zfill(2) + ':' + str(seconds).zfill(2)
+        except TypeError:
+          duration = 'N/A'
         albums[album]['tracks'][row[4]] = {'id': row[0], 'title': row[1], 'title_sort': row[2], 'original_title': row[3], 'index': row[4], 'duration': duration, 'codec': row[6]}
           
     if ('album_sort_3' in config and config['album_sort_3'] != ''):
