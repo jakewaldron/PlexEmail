@@ -25,7 +25,7 @@ from email.header import Header
 from email.utils import formataddr
 from xml.etree.ElementTree import XML
 
-SCRIPT_VERSION = 'v0.8.5'
+SCRIPT_VERSION = 'v0.8.6'
 
 def replaceConfigTokens():
   ## The below code is for backwards compatibility
@@ -1241,29 +1241,37 @@ with con:
         emailTVSeasons += emailText
         htmlTVSeasons += htmlText
   
+    modifiedTVEpisodes = dict(tvEpisodes)
     for episode in tvEpisodes:
       cur2 = con.cursor()
-      cur2.execute("SELECT user_thumb_url, parent_id, [index] FROM metadata_items WHERE id = " + str(tvEpisodes[episode]['parent_id']) + ";")
+      if (tvEpisodes[episode]['parent_id']):
+        logging.info('main: tvEpisodes[episode][\'parent_id\'] = ' + str(tvEpisodes[episode]['parent_id']))
+        cur2.execute("SELECT user_thumb_url, parent_id, [index] FROM metadata_items WHERE id = ?;", (str(tvEpisodes[episode]['parent_id']),))
 
-      for row in cur2:
-        tvEpisodes[episode]['season_thumb_url'] = row[0]
-        parent_id = row[1]
-        tvEpisodes[episode]['season_index'] = row[2]
+        for row in cur2:
+          tvEpisodes[episode]['season_thumb_url'] = row[0]
+          parent_id = row[1]
+          tvEpisodes[episode]['season_index'] = row[2]
+          
+          cur3 = con.cursor()
+          cur3.execute("SELECT title, title_sort, original_title, content_rating, duration, tags_genre, tags_star, hash, user_thumb_url, studio FROM metadata_items WHERE id = " + str(parent_id) + ";")
+          
+          for row2 in cur3:
+            tvEpisodes[episode]['show_title'] = row2[0]
+            tvEpisodes[episode]['show_title_sort'] = row2[1]
+            tvEpisodes[episode]['show_original_title'] = row2[2]
+            tvEpisodes[episode]['content_rating'] = row2[3]
+            tvEpisodes[episode]['duration'] = row2[4]
+            tvEpisodes[episode]['tags_genre'] = row2[5]
+            tvEpisodes[episode]['tags_star'] = row2[6]
+            tvEpisodes[episode]['hash'] = row2[7]
+            tvEpisodes[episode]['show_thumb_url'] = row2[8]
+            tvEpisodes[episode]['studio'] = row2[9]
+      else:
+        logging.info('main: tvEpisodes[episode][\'parent_id\'] = None')
+        del modifiedTVEpisodes[episode]
         
-        cur3 = con.cursor()
-        cur3.execute("SELECT title, title_sort, original_title, content_rating, duration, tags_genre, tags_star, hash, user_thumb_url, studio FROM metadata_items WHERE id = " + str(parent_id) + ";")
-        
-        for row2 in cur3:
-          tvEpisodes[episode]['show_title'] = row2[0]
-          tvEpisodes[episode]['show_title_sort'] = row2[1]
-          tvEpisodes[episode]['show_original_title'] = row2[2]
-          tvEpisodes[episode]['content_rating'] = row2[3]
-          tvEpisodes[episode]['duration'] = row2[4]
-          tvEpisodes[episode]['tags_genre'] = row2[5]
-          tvEpisodes[episode]['tags_star'] = row2[6]
-          tvEpisodes[episode]['hash'] = row2[7]
-          tvEpisodes[episode]['show_thumb_url'] = row2[8]
-          tvEpisodes[episode]['studio'] = row2[9]
+    tvEpisodes = dict(modifiedTVEpisodes)
           
     if ('episode_sort_3' in config and config['episode_sort_3'] != ''):
       tvEpisodes = OrderedDict(sorted(tvEpisodes.iteritems(), key=lambda t: t[1][config['episode_sort_3']], reverse=config['episode_sort_3_reverse']))
