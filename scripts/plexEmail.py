@@ -431,6 +431,7 @@ def processImage(imageHash, thumb, mediaType, seasonIndex, episodeIndex):
       try:
         shutil.copy(imgLocation, img)
       except EnvironmentError, e:
+        logging.warning('processImage: Failed to copy image - ' + repr(e))
         thumbObj['emailImgPath'] = ''
         thumbObj['webImgPath'] = ''
       else:
