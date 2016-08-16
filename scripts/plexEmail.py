@@ -13,6 +13,8 @@ import cloudinary.uploader
 import cloudinary.api
 import imghdr
 import time
+import logging
+import traceback
 from base64 import b64encode
 from collections import OrderedDict
 from datetime import date, timedelta
@@ -23,10 +25,22 @@ from email.header import Header
 from email.utils import formataddr
 from xml.etree.ElementTree import XML
 
-SCRIPT_VERSION = 'v0.8.3'
+SCRIPT_VERSION = 'v0.8.7'
 
 def replaceConfigTokens():
   ## The below code is for backwards compatibility
+  if ('logging_retain_previous_logs' not in config):
+    config['logging_retain_previous_logs'] = True
+    
+  if ('logging_debug_level' not in config):
+    config['logging_debug_level'] = 'INFO'
+    
+  if ('logging_file_location' not in config):
+    config['logging_file_location'] = ''
+  
+  if ('upload_cloudinary_api_secret' not in config):
+    config['upload_cloudinary_api_secret'] = True
+    
   if ('artist_sort_1' not in config.keys() or config['artist_sort_1'] == ""):
     config['artist_sort_1'] = 'title_sort'
     
@@ -283,52 +297,75 @@ def convertToHumanReadable(valuesToConvert):
   return convertedValues
 
 def getSharedUserEmails():
+  logging.info('getSharedUserEmails: begin')
   emails = []
   if (config['plex_username'] == '' or config['plex_password'] == ''):
     return emails
     
   url = 'https://my.plexapp.com/users/sign_in.json'
+  logging.info('getSharedUserEmails: url = ' + url)
   base64string = 'Basic ' + base64.encodestring('%s:%s' % (config['plex_username'], config['plex_password'])).replace('\n', '')
   headers = {'Authorization': base64string, 'X-Plex-Client-Identifier': 'plexEmail'}
+  logging.debug('getSharedUserEmails: headers = ' + str(headers))
   response = requests.post(url, headers=headers)
+  logging.info('getSharedUserEmails: response = ' + str(response))
+  logging.info('getSharedUserEmails: response = ' + str(response.text))
   token = json.loads(response.text)['user']['authentication_token'];
+  logging.info('getSharedUserEmails: token = ' + token)
   
   url = 'https://plex.tv/pms/friends/all'
+  logging.info('getSharedUserEmails: url = ' + url)
   headers = {'Accept': 'application/json', 'X-Plex-Token': token}
+  logging.debug('getSharedUserEmails: headers = ' + str(headers))
   response = requests.get(url, headers=headers)
+  logging.info('getSharedUserEmails: response = ' + str(response))
+  logging.info('getSharedUserEmails: response = ' + str(response.text))
   
   parsed = XML(response.text.encode('ascii', 'ignore'))
   for elem in parsed:
     for name, value in sorted(elem.attrib.items()):
       if (name == 'email'):
+        logging.info('getSharedUserEmails: adding email - ' + value.lower())
         emails.append(value.lower())
-        
+  
+  logging.info('getSharedUserEmails: Returning shared emails')
+  logging.debug('getSharedUserEmails: email list - ' + ' '.join(emails))
   return emails
 
 def deleteImages():
+  logging.info('deleteImages: begin')
   folder = config['web_folder'] + config['web_path'] + os.path.sep + 'images' + os.path.sep
+  logging.info('deleteImages: deleting images from: ' + folder)
   for file in os.listdir(folder):
     if (file.endswith('.jpg')):
+      logging.debug('deleteImages: deleting image: ' + folder + file)
       os.remove(folder + file)
+  logging.info('deleteImages: end')
   
 def processImage(imageHash, thumb, mediaType, seasonIndex, episodeIndex):
+  logging.info('processImage: begin')
+  logging.info('processImage: imageHash = ' + imageHash + ' - thumb = ' + thumb + ' - mediaType = ' + mediaType + ' - seasonIndex = ' + str(seasonIndex) + ' - episodeIndex = ' + str(episodeIndex))
   thumbObj = {}
   imgLocation = ''
   if (not thumb or thumb == ''):
+    logging.info('processImage: thumb is either null or empty, returning no image')
     thumbObj['webImgPath'] = ''
     thumbObj['emailImgPath'] = ''
     return thumbObj
   
-  if (thumb.find('http://') >= 0):
+  if (thumb.find('http://') >= 0 or thumb.find('https://') >= 0):
+    logging.info('processImage: thumb is already an externally hosted image')
     thumbObj['webImgPath'] = thumb
     thumbObj['emailImgPath'] = thumb
     return thumbObj
   else:
     if (thumb.find('media://') >= 0):
+      logging.info('processImage: thumb begins with media://')
       thumb = thumb[8:len(thumb)]
       imgName = thumb[thumb.rindex('/') + 1:thumb.rindex('.')] + hash
       imgLocation = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Media' + os.path.sep + 'localhost' + os.path.sep + '' + thumb
     elif (thumb.find('upload://') >= 0):
+      logging.info('processImage: thumb begins with upload://')
       thumb = thumb[9:len(thumb)]
       category = thumb[0:thumb.index('/')]
       imgName = thumb[thumb.rindex('/') + 1:len(thumb)]
@@ -363,25 +400,42 @@ def processImage(imageHash, thumb, mediaType, seasonIndex, episodeIndex):
     webImgFullPath = config['web_domain'] + config['web_path'] + '/images/' + imgName + '.jpg'
     img = config['web_folder'] + config['web_path'] + os.path.sep + 'images' + os.path.sep + imgName + '.jpg'
     
+    logging.info('processImage: imgLocation = ' + imgLocation)
+    logging.info('processImage: webImgFullPath = ' + webImgFullPath)
+    logging.info('processImage: img = ' + img)
+    
+    
     cloudinaryURL = ''
     if ('upload_use_cloudinary' in config and config['upload_use_cloudinary']):
+      logging.info('processImage: Uploading to cloudinary')
       thumbObj['emailImgPath'] = webImgFullPath
       #imgurURL = uploadToImgur(imgLocation, imgName)
       cloudinaryURL = uploadToCloudinary(imgLocation)
     elif (config['web_enabled'] and config['email_use_web_images']):
+      logging.info('processImage: Hosting image on local web server')
       thumbObj['emailImgPath'] = webImgFullPath
     elif (os.path.isfile(imgLocation)):
+      logging.info('processImage: Attaching images to email')
       imgNames['Image_' + imgName] = imgLocation
       thumbObj['emailImgPath'] = 'cid:Image_' + imgName
     else:
+      logging.info('processImage: No email image')
       thumbObj['emailImgPath'] = ''
       
     if (cloudinaryURL != ''):
+      logging.info('processImage: Setting image paths to cloudinary')
       thumbObj['webImgPath'] = cloudinaryURL
       thumbObj['emailImgPath'] = cloudinaryURL
     elif (os.path.isfile(imgLocation) and config['web_enabled']):
-      shutil.copy(imgLocation, img)
-      thumbObj['webImgPath'] = 'images/' + imgName + '.jpg'
+      logging.info('processImage: Setting image paths to local and copying image to web folder')
+      try:
+        shutil.copy(imgLocation, img)
+      except EnvironmentError, e:
+        logging.warning('processImage: Failed to copy image - ' + repr(e))
+        thumbObj['emailImgPath'] = ''
+        thumbObj['webImgPath'] = ''
+      else:
+        thumbObj['webImgPath'] = 'images/' + imgName + '.jpg'
     else:
       thumbObj['webImgPath'] = ''
     
@@ -408,15 +462,22 @@ def uploadToImgur(imgToUpload, nameOfUpload):
     return ''
       
 def uploadToCloudinary(imgToUpload):
+  logging.info('uploadToCloudinary: begin')
   if (os.path.isfile(imgToUpload)):
     if (os.path.islink(imgToUpload)):
       imgToUpload = os.path.realpath(imgToUpload)
     if (imghdr.what(imgToUpload)):
+      logging.info('uploadToCloudinary: start upload to cloudinary')
       response = cloudinary.uploader.upload(imgToUpload)
-      return response['url']
+      logging.info('uploadToCloudinary: response = ' + str(response))
+      url = response['secure_url'] if (config['upload_cloudinary_use_https']) else response['url']
+      logging.info('uploadToCloudinary: url = ' + url)
+      return url
     else:
+      logging.info('uploadToCloudinary: not an image')
       return ''
   else:
+    logging.info('uploadToCloudinary: file not located')
     return ''
     
 def containsnonasciicharacters(str):
@@ -758,6 +819,9 @@ def createWebHTML():
     </html>"""
     
   return htmlText
+  
+def exceptionHandler(type, value, tb):
+  logging.error("Logging an uncaught exception", exc_info=(type, value, tb))
 
 #
 #
@@ -775,13 +839,9 @@ args = vars(parser.parse_args())
 if ('version' in args and args['version']):
   print 'Script Version: ' + SCRIPT_VERSION
   sys.exit()
-  
-testMode = False
-  
+
 if ('configfile' in args):
   configFile = args['configfile']
-if ('test' in args):
-  testMode = args['test']
 
 if (not os.path.isfile(configFile)):
   print configFile + ' does not exist'
@@ -790,21 +850,45 @@ if (not os.path.isfile(configFile)):
 config = {}
 execfile(configFile, config)
 replaceConfigTokens()
+  
+numeric_level = getattr(logging, config['logging_debug_level'], None)
+file_mode = 'a' if (config['logging_retain_previous_logs']) else 'w'
+if not isinstance(numeric_level, int):
+  numeric_level = getattr(logging, 'INFO')
+if not os.path.exists(os.path.dirname(os.path.realpath(sys.argv[0])) + os.path.sep + 'logs'):
+    os.makedirs(os.path.dirname(os.path.realpath(sys.argv[0])) + os.path.sep + 'logs')
+logging.basicConfig(level=numeric_level, format='%(asctime)s - %(levelname)s:%(message)s', filename=os.path.dirname(os.path.realpath(sys.argv[0])) + os.path.sep + 'logs' + os.path.sep + 'plexEmail.log', filemode=file_mode)
+
+sys.excepthook = exceptionHandler
+
+testMode = False
+
+if ('test' in args):
+  logging.info('Test flag found - setting script instance to test mode.')
+  testMode = args['test']
+else:
+  logging.info('Test flag not found.')
 
 if ('notice' in args and args['notice']):
+  logging.info('Notice passed in: ' + args['notice'])
   config['msg_notice'] = args['notice']
 
 if ('upload_use_cloudinary' in config and config['upload_use_cloudinary']):
-  cloudinary.config( 
+  logging.info('Setting Cloudinary config values')
+  cloudinary.config(
     cloud_name = config['upload_cloudinary_cloud_name'],
     api_key = config['upload_cloudinary_api_key'],
-    api_secret = config['upload_cloudinary_api_secret']
+    api_secret = config['upload_cloudinary_api_secret'],
+    upload_prefix = 'https://api.cloudinary.com' if ('upload_cloudinary_use_https' in config and config['upload_cloudinary_use_https']) else 'http://api.cloudinary.com'
   )
+  logging.debug('Cloudinary config: ' + str(cloudinary.config))
 
 plexWebLink = ''
 
 if (config['filter_include_plex_web_link']):
+  logging.info('Including Plex Web Link - Getting machine identifier from the DLNA DB')
   DLNA_DB_FILE = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Plug-in Support' + os.path.sep + 'Databases' + os.path.sep + 'com.plexapp.dlna.db'
+  logging.info('DLNA_DB_FILE = ' + DLNA_DB_FILE)
   
   if (os.path.isfile(DLNA_DB_FILE)):
     con = sqlite3.connect(DLNA_DB_FILE)
@@ -812,10 +896,14 @@ if (config['filter_include_plex_web_link']):
     cur.execute('SELECT machine_identifier FROM remote_servers WHERE url LIKE "http://127.0.0.1%";')
     for row in cur:
       plexWebLink = 'http://plex.tv/web/app#!/server/' + row[0] + '/details/%2Flibrary%2Fmetadata%2F'
+      logging.info('plexWebLink = ' + plexWebLink)
+  else:
+    logging.warning(DLNA_DB_FILE + ' does not exist')
 
 DATABASE_FILE = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Plug-in Support' + os.path.sep + 'Databases' + os.path.sep + 'com.plexapp.plugins.library.db'
   
 if (not os.path.isfile(DATABASE_FILE)):
+  logging.error(DATABASE_FILE + ' does not exist. Please make sure the plex_data_folder value is correct.')
   print DATABASE_FILE + ' does not exist. Please make sure the plex_data_folder value is correct.'
   sys.exit()
   
@@ -825,6 +913,7 @@ con.text_factory = str
 with con:
     libraryFilter = ''
     if (config['filter_libraries']):
+      logging.info('Getting IDs of libraries to filter')
       cur = con.cursor()
       cur.execute('SELECT id, name FROM library_sections;')
       for row in cur:
@@ -836,19 +925,26 @@ with con:
             libraryFilter += ' AND MD.library_section_id != ' + str(row[0])
       if (libraryFilter != ''):
         libraryFilter += ') '
+      logging.debug('libraryFilter = ' + libraryFilter)
       
     dateSearch = 'datetime(\'now\', \'localtime\', \'-' + str(config['date_days_back_to_search']) + ' days\', \'-' + str(config['date_hours_back_to_search']) + ' hours\', \'-' + str(config['date_minutes_back_to_search']) + ' minutes\')'
+    logging.debug('dateSearch for DB query = ' + dateSearch)
 
+    dbQuery = "SELECT MD.id, MD.parent_id, MD.metadata_type, MD.title, MD.title_sort, MD.original_title, MD.rating, MD.tagline, MD.summary, MD.content_rating, MD.duration, MD.user_thumb_url, MD.tags_genre, MD.tags_director, MD.tags_star, MD.year, MD.hash, MD.[index], MD.studio, ME.duration, MD.originally_available_at FROM metadata_items MD LEFT OUTER JOIN media_items ME ON MD.id = ME.metadata_item_id WHERE added_at >= " + dateSearch + " AND metadata_type >= 1 AND metadata_type <= 10 " + libraryFilter + " ORDER BY title_sort;"
+    logging.info('Executing DB query: ' + dbQuery)
     cur = con.cursor()    
-    cur.execute("SELECT MD.id, MD.parent_id, MD.metadata_type, MD.title, MD.title_sort, MD.original_title, MD.rating, MD.tagline, MD.summary, MD.content_rating, MD.duration, MD.user_thumb_url, MD.tags_genre, MD.tags_director, MD.tags_star, MD.year, MD.hash, MD.[index], MD.studio, ME.duration, MD.originally_available_at FROM metadata_items MD LEFT OUTER JOIN media_items ME ON MD.id = ME.metadata_item_id WHERE added_at >= " + dateSearch + " AND metadata_type >= 1 AND metadata_type <= 10 " + libraryFilter + " ORDER BY title_sort;")
+    cur.execute(dbQuery)
 
     response = {};
+    logging.debug('Response:')
     for row in cur:
       response[row[0]] = {'id': row[0], 'parent_id': row[1], 'metadata_type': row[2], 'title': row[3], 'title_sort': row[4], 'original_title': row[5], 'rating': row[6], 'tagline': row[7], 'summary': row[8], 'content_rating': row[9], 'duration': row[10], 'user_thumb_url': row[11], 'tags_genre': row[12], 'tags_director': row[13], 'tags_star': row[14], 'year': row[15], 'hash': row[16], 'index': row[17], 'studio': row[18], 'real_duration': row[19], 'air_date': row[20]}
+      logging.debug(response[row[0]])    
     
     emailNotice = ''
     htmlNotice = ''
     if (config['msg_notice']):
+      logging.info('Generating html for the notice: ' + config['msg_notice'])
       emailNotice = """<br/>&nbsp;<div style="border: 1px solid; padding:15px 0px 15px 0px; background-repeat: no-repeat; background-position: 10px center; color: #00529B; background-color: #BDE5F8;font-family:Arial, Helvetica, sans-serif; font-size:20px; text-align: center;">""" + config['msg_notice'] + """</div><br/>&nbsp;"""
       htmlNotice = """<div class="container"><hr class="featurette-divider"><div class="info">""" + config['msg_notice'] + """</div>"""
     emailMovies = """<div class="headline" style="background: #FFF !important; padding-top: 0px !important;">
@@ -1145,29 +1241,37 @@ with con:
         emailTVSeasons += emailText
         htmlTVSeasons += htmlText
   
+    modifiedTVEpisodes = dict(tvEpisodes)
     for episode in tvEpisodes:
       cur2 = con.cursor()
-      cur2.execute("SELECT user_thumb_url, parent_id, [index] FROM metadata_items WHERE id = " + str(tvEpisodes[episode]['parent_id']) + ";")
+      if (tvEpisodes[episode]['parent_id']):
+        logging.info('main: tvEpisodes[episode][\'parent_id\'] = ' + str(tvEpisodes[episode]['parent_id']))
+        cur2.execute("SELECT user_thumb_url, parent_id, [index] FROM metadata_items WHERE id = ?;", (str(tvEpisodes[episode]['parent_id']),))
 
-      for row in cur2:
-        tvEpisodes[episode]['season_thumb_url'] = row[0]
-        parent_id = row[1]
-        tvEpisodes[episode]['season_index'] = row[2]
+        for row in cur2:
+          tvEpisodes[episode]['season_thumb_url'] = row[0]
+          parent_id = row[1]
+          tvEpisodes[episode]['season_index'] = row[2]
+          
+          cur3 = con.cursor()
+          cur3.execute("SELECT title, title_sort, original_title, content_rating, duration, tags_genre, tags_star, hash, user_thumb_url, studio FROM metadata_items WHERE id = " + str(parent_id) + ";")
+          
+          for row2 in cur3:
+            tvEpisodes[episode]['show_title'] = row2[0]
+            tvEpisodes[episode]['show_title_sort'] = row2[1]
+            tvEpisodes[episode]['show_original_title'] = row2[2]
+            tvEpisodes[episode]['content_rating'] = row2[3]
+            tvEpisodes[episode]['duration'] = row2[4]
+            tvEpisodes[episode]['tags_genre'] = row2[5]
+            tvEpisodes[episode]['tags_star'] = row2[6]
+            tvEpisodes[episode]['hash'] = row2[7]
+            tvEpisodes[episode]['show_thumb_url'] = row2[8]
+            tvEpisodes[episode]['studio'] = row2[9]
+      else:
+        logging.info('main: tvEpisodes[episode][\'parent_id\'] = None')
+        del modifiedTVEpisodes[episode]
         
-        cur3 = con.cursor()
-        cur3.execute("SELECT title, title_sort, original_title, content_rating, duration, tags_genre, tags_star, hash, user_thumb_url, studio FROM metadata_items WHERE id = " + str(parent_id) + ";")
-        
-        for row2 in cur3:
-          tvEpisodes[episode]['show_title'] = row2[0]
-          tvEpisodes[episode]['show_title_sort'] = row2[1]
-          tvEpisodes[episode]['show_original_title'] = row2[2]
-          tvEpisodes[episode]['content_rating'] = row2[3]
-          tvEpisodes[episode]['duration'] = row2[4]
-          tvEpisodes[episode]['tags_genre'] = row2[5]
-          tvEpisodes[episode]['tags_star'] = row2[6]
-          tvEpisodes[episode]['hash'] = row2[7]
-          tvEpisodes[episode]['show_thumb_url'] = row2[8]
-          tvEpisodes[episode]['studio'] = row2[9]
+    tvEpisodes = dict(modifiedTVEpisodes)
           
     if ('episode_sort_3' in config and config['episode_sort_3'] != ''):
       tvEpisodes = OrderedDict(sorted(tvEpisodes.iteritems(), key=lambda t: t[1][config['episode_sort_3']], reverse=config['episode_sort_3_reverse']))
@@ -1327,14 +1431,18 @@ with con:
       
       albums[album]['tracks'] = {}
       for row in cur2:
-        duration = row[5]/1000
-        seconds = duration % 60
-        duration /= 60
-        minutes = duration % 60
-        duration /= 60
-        hours = duration
-        duration = str(hours) + ':' if (hours > 0) else ''
-        duration += str(minutes).zfill(2) + ':' + str(seconds).zfill(2)
+        duration = row[5]
+        try:
+          duration /= 1000
+          seconds = duration % 60
+          duration /= 60
+          minutes = duration % 60
+          duration /= 60
+          hours = duration
+          duration = str(hours) + ':' if (hours > 0) else ''
+          duration += str(minutes).zfill(2) + ':' + str(seconds).zfill(2)
+        except TypeError:
+          duration = 'N/A'
         albums[album]['tracks'][row[4]] = {'id': row[0], 'title': row[1], 'title_sort': row[2], 'original_title': row[3], 'index': row[4], 'duration': duration, 'codec': row[6]}
           
     if ('album_sort_3' in config and config['album_sort_3'] != ''):
@@ -1516,7 +1624,7 @@ with con:
           # songCount += 1
           # emailSongs += emailText
           # htmlSongs += htmlText
-        
+    
     if ((movieCount > 0 and config['filter_show_movies']) or (showCount > 0 and config['filter_show_shows']) or (seasonCount > 0 and config['filter_show_seasons']) or (episodeCount > 0 and config['filter_show_episodes']) or (artistCount > 0 and config['filter_show_artists']) or (albumCount > 0 and config['filter_show_albums']) or (songCount > 0 and config['filter_show_songs'])):
       hasNewContent = True
     else:
@@ -1540,6 +1648,9 @@ with con:
         sharedEmails = getSharedUserEmails()
         config['email_to'].extend(x for x in sharedEmails if x not in config['email_to'])
 
+      #Remove duplicates by converting to a set
+      config['email_to'] = set(config['email_to'])
+      
       emailCount = 0
       if (testMode):
         success = sendMail([config['email_from']])
