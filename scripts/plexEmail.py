@@ -25,7 +25,7 @@ from email.header import Header
 from email.utils import formataddr
 from xml.etree.ElementTree import XML
 
-SCRIPT_VERSION = 'v0.8.6'
+SCRIPT_VERSION = 'v0.8.7'
 
 def replaceConfigTokens():
   ## The below code is for backwards compatibility
@@ -353,7 +353,7 @@ def processImage(imageHash, thumb, mediaType, seasonIndex, episodeIndex):
     thumbObj['emailImgPath'] = ''
     return thumbObj
   
-  if (thumb.find('http://') >= 0):
+  if (thumb.find('http://') >= 0 or thumb.find('https://') >= 0):
     logging.info('processImage: thumb is already an externally hosted image')
     thumbObj['webImgPath'] = thumb
     thumbObj['emailImgPath'] = thumb
