@@ -25,10 +25,13 @@ from email.header import Header
 from email.utils import formataddr
 from xml.etree.ElementTree import XML
 
-SCRIPT_VERSION = 'v0.8.7'
+SCRIPT_VERSION = 'v0.8.8'
 
 def replaceConfigTokens():
   ## The below code is for backwards compatibility
+  if ('upload_cloudinary_use_https' not in config):
+    config['upload_cloudinary_use_https'] = True
+  
   if ('logging_retain_previous_logs' not in config):
     config['logging_retain_previous_logs'] = True
     
