@@ -11,6 +11,7 @@ This script aggregates all new TV and movie releases for the past x days and wri
 * Linux - Tested
 * FreeBSD/FreeNAS - Tested
 * Mac - Tested
+* QNAP - User Tested
 
 ## Supported Email Protocols
 * SMTP
@@ -48,6 +49,12 @@ https://forums.plex.tv/index.php/topic/151619-plexemail-in-development/page-7#en
 Thanks to [adrianwi](https://forums.plex.tv/profile/adrianwi):
 
 https://forums.freenas.org/index.php?threads/guide-for-installing-plexemail.40748/#post-257799
+
+## Installation (QNAP)
+
+Thanks to [nickiman](https://forums.plex.tv/profile/nickiman):
+
+https://forum.qnap.com/viewtopic.php?f=177&t=125414
 
 ## Usage
 
@@ -98,6 +105,7 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * date_days_back_to_search - Number of days to search backwards
 * date_hours_back_to_search - Number of hours to search backwards
 * date_minutes_back_to_search - Number of minutes to search backwards
+* plex_web_server_guid - If DLNA is enabled, this can be left blank; otherwise set this if using plex web links.  Example (the portion of all X's is the value): https://app.plex.tv/web/app#!/server/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX/details/%2Flibrary%2Fmetadata%2F43268
 
 #####Logging
 * logging_debug_level - Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)

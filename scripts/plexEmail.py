@@ -25,10 +25,13 @@ from email.header import Header
 from email.utils import formataddr
 from xml.etree.ElementTree import XML
 
-SCRIPT_VERSION = 'v0.8.8'
+SCRIPT_VERSION = 'v0.9.0'
 
 def replaceConfigTokens():
   ## The below code is for backwards compatibility
+  if ('plex_web_server_guid' not in config):
+    config['plex_web_server_guid'] = ''
+    
   if ('upload_cloudinary_use_https' not in config):
     config['upload_cloudinary_use_https'] = True
   
@@ -329,7 +332,7 @@ def getSharedUserEmails():
   logging.debug('getSharedUserEmails: headers = ' + str(headers))
   response = requests.get(url, headers=headers)
   logging.info('getSharedUserEmails: response = ' + str(response))
-  logging.info('getSharedUserEmails: response = ' + str(response.text))
+  logging.info('getSharedUserEmails: response = ' + str(response.text.encode('ascii', 'ignore')))
   
   parsed = XML(response.text.encode('ascii', 'ignore'))
   for elem in parsed:
@@ -390,16 +393,16 @@ def processImage(imageHash, thumb, mediaType, seasonIndex, episodeIndex):
       imgName = thumb[thumb.index('_') + 1:len(thumb)]
       if (mediaType == 'movie'):
         indexer = thumb[thumb.index('/') + 1:thumb.index('_')]
-        imgLocation = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Metadata' + os.path.sep + 'Movies' + os.path.sep + imageHash[0] + os.path.sep + imageHash[1:len(imageHash)] + '.bundle' + os.path.sep + 'Contents' + os.path.sep + indexer + os.path.sep + category + os.path.sep + imgName
+        imgLocation = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Metadata' + os.path.sep + 'Movies' + os.path.sep + imageHash[0] + os.path.sep + imageHash[1:len(imageHash)] + '.bundle' + os.path.sep + 'Contents' + os.path.sep + '_stored' + os.path.sep + thumb
       elif (mediaType == 'show'):
         indexer = thumb[thumb.index('/') + 1:thumb.index('_')]
-        imgLocation = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Metadata' + os.path.sep + 'TV Shows' + os.path.sep + imageHash[0] + os.path.sep + imageHash[1:len(imageHash)] + '.bundle' + os.path.sep + 'Contents' + os.path.sep + indexer + os.path.sep + category + os.path.sep + imgName
+        imgLocation = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Metadata' + os.path.sep + 'TV Shows' + os.path.sep + imageHash[0] + os.path.sep + imageHash[1:len(imageHash)] + '.bundle' + os.path.sep + 'Contents' + os.path.sep + '_stored' + os.path.sep + thumb
       elif (mediaType == 'season'):
         indexer = thumb[thumb.index('posters/') + 8:thumb.index('_')]
-        imgLocation = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Metadata' + os.path.sep + 'TV Shows' + os.path.sep + imageHash[0] + os.path.sep + imageHash[1:len(imageHash)] + '.bundle' + os.path.sep + 'Contents' + os.path.sep + indexer + os.path.sep + 'seasons' + os.path.sep + str(seasonIndex) + os.path.sep + 'posters' + os.path.sep + imgName
+        imgLocation = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Metadata' + os.path.sep + 'TV Shows' + os.path.sep + imageHash[0] + os.path.sep + imageHash[1:len(imageHash)] + '.bundle' + os.path.sep + 'Contents' + os.path.sep + '_stored' + os.path.sep + thumb
       elif (mediaType == 'episode'):
         indexer = thumb[thumb.index('thumbs/') + 7:thumb.index('_')]
-        imgLocation = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Metadata' + os.path.sep + 'TV Shows' + os.path.sep + imageHash[0] + os.path.sep + imageHash[1:len(imageHash)] + '.bundle' + os.path.sep + 'Contents' + os.path.sep + indexer + os.path.sep + 'seasons' + os.path.sep + str(seasonIndex) + os.path.sep + 'episodes' + os.path.sep + str(episodeIndex) + os.path.sep + 'thumbs' + os.path.sep + imgName
+        imgLocation = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Metadata' + os.path.sep + 'TV Shows' + os.path.sep + imageHash[0] + os.path.sep + imageHash[1:len(imageHash)] + '.bundle' + os.path.sep + 'Contents' + os.path.sep + '_stored' + os.path.sep + thumb
       elif (mediaType == 'artist'):
         indexer = thumb[thumb.index('posters/') + 8:thumb.index('_')]
         imgLocation = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Metadata' + os.path.sep + 'Artists' + os.path.sep + imageHash[0] + os.path.sep + imageHash[1:len(imageHash)] + '.bundle' + os.path.sep + 'Contents' + os.path.sep + '_stored' + os.path.sep + thumb
@@ -896,19 +899,25 @@ if ('upload_use_cloudinary' in config and config['upload_use_cloudinary']):
 plexWebLink = ''
 
 if (config['filter_include_plex_web_link']):
-  logging.info('Including Plex Web Link - Getting machine identifier from the DLNA DB')
-  DLNA_DB_FILE = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Plug-in Support' + os.path.sep + 'Databases' + os.path.sep + 'com.plexapp.dlna.db'
-  logging.info('DLNA_DB_FILE = ' + DLNA_DB_FILE)
-  
-  if (os.path.isfile(DLNA_DB_FILE)):
-    con = sqlite3.connect(DLNA_DB_FILE)
-    cur = con.cursor()    
-    cur.execute('SELECT machine_identifier FROM remote_servers WHERE url LIKE "http://127.0.0.1%";')
-    for row in cur:
-      plexWebLink = 'http://plex.tv/web/app#!/server/' + row[0] + '/details/%2Flibrary%2Fmetadata%2F'
-      logging.info('plexWebLink = ' + plexWebLink)
+  if (config['plex_web_server_guid'] == ''):
+    plexWebLink = 'http://plex.tv/web/app#!/server/' + config['plex_web_server_guid'] + '/details/%2Flibrary%2Fmetadata%2F'
   else:
-    logging.warning(DLNA_DB_FILE + ' does not exist')
+    logging.info('Including Plex Web Link - Getting machine identifier from the DLNA DB')
+    DLNA_DB_FILE = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Plug-in Support' + os.path.sep + 'Databases' + os.path.sep + 'com.plexapp.dlna.db'
+    logging.info('DLNA_DB_FILE = ' + DLNA_DB_FILE)
+    
+    if (os.path.isfile(DLNA_DB_FILE)):
+      try:
+        con = sqlite3.connect(DLNA_DB_FILE)
+        cur = con.cursor()    
+        cur.execute('SELECT machine_identifier FROM remote_servers WHERE url LIKE "http://127.0.0.1%";')
+        for row in cur:
+          plexWebLink = 'http://plex.tv/web/app#!/server/' + row[0] + '/details/%2Flibrary%2Fmetadata%2F'
+          logging.info('plexWebLink = ' + plexWebLink)
+      except sqlite3.OperationalError:
+        logging.warning(DLNA_DB_FILE + ' is locked or does not have the correct permissions')
+    else:
+      logging.warning(DLNA_DB_FILE + ' does not exist')
 
 DATABASE_FILE = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Plug-in Support' + os.path.sep + 'Databases' + os.path.sep + 'com.plexapp.plugins.library.db'
   
@@ -1183,7 +1192,7 @@ with con:
         tvSeasons[season]['tags_director'] = row[9]
         tvSeasons[season]['tags_star'] = row[10]
         tvSeasons[season]['year'] = row[11]
-        tvSeasons[season]['hash'] = row[12]
+        tvSeasons[season]['parent_hash'] = row[12]
         tvSeasons[season]['parent_thumb_url'] = row[13]
         tvSeasons[season]['studio'] = row[14]
           
@@ -1200,13 +1209,14 @@ with con:
       if (tvSeasons[season]['original_title'] != ''):
         title += tvSeasons[season]['original_title'] + ' AKA '
       title += tvSeasons[season]['title']
-      hash = str(tvSeasons[season]['hash'])
       imageInfo = {}
       if (tvSeasons[season]['user_thumb_url'] != ''):
         imageInfo['thumb'] = tvSeasons[season]['user_thumb_url']
+        hash = str(tvSeasons[season]['parent_hash'])
         imageInfo = processImage(hash, imageInfo['thumb'], 'season', tvSeasons[season]['index'], 0)
       else:
         imageInfo['thumb'] = tvSeasons[season]['parent_thumb_url']
+        hash = str(tvSeasons[season]['parent_hash'])
         imageInfo = processImage(hash, imageInfo['thumb'], 'show', 0, 0)
       
       skipItem = False
@@ -1253,15 +1263,20 @@ with con:
   
     modifiedTVEpisodes = dict(tvEpisodes)
     for episode in tvEpisodes:
+      logging.debug('main: hash = ' + tvEpisodes[episode]['hash'])
+      logging.debug('main: user_thumb_url = ' + tvEpisodes[episode]['user_thumb_url'])
       cur2 = con.cursor()
       if (tvEpisodes[episode]['parent_id']):
         logging.info('main: tvEpisodes[episode][\'parent_id\'] = ' + str(tvEpisodes[episode]['parent_id']))
-        cur2.execute("SELECT user_thumb_url, parent_id, [index] FROM metadata_items WHERE id = ?;", (str(tvEpisodes[episode]['parent_id']),))
+        cur2.execute("SELECT user_thumb_url, parent_id, [index], hash FROM metadata_items WHERE id = ?;", (str(tvEpisodes[episode]['parent_id']),))
 
         for row in cur2:
           tvEpisodes[episode]['season_thumb_url'] = row[0]
           parent_id = row[1]
           tvEpisodes[episode]['season_index'] = row[2]
+          tvEpisodes[episode]['season_hash'] = row[3]
+          logging.debug('main: season_hash = ' + row[3])
+          logging.debug('main: season_thumb_url = ' + row[0])
           
           cur3 = con.cursor()
           cur3.execute("SELECT title, title_sort, original_title, content_rating, duration, tags_genre, tags_star, hash, user_thumb_url, studio FROM metadata_items WHERE id = " + str(parent_id) + ";")
@@ -1274,8 +1289,10 @@ with con:
             tvEpisodes[episode]['duration'] = row2[4]
             tvEpisodes[episode]['tags_genre'] = row2[5]
             tvEpisodes[episode]['tags_star'] = row2[6]
-            tvEpisodes[episode]['hash'] = row2[7]
+            tvEpisodes[episode]['show_hash'] = row2[7]
+            logging.debug('main: show_hash = ' + row2[7])
             tvEpisodes[episode]['show_thumb_url'] = row2[8]
+            logging.debug('main: show_thumb_url = ' + row2[8])
             tvEpisodes[episode]['studio'] = row2[9]
       else:
         logging.info('main: tvEpisodes[episode][\'parent_id\'] = None')
@@ -1301,17 +1318,20 @@ with con:
         if (tvEpisodes[episode]['original_title'] != ''):
           title += tvEpisodes[episode]['original_title'] + ' AKA '
         title += tvEpisodes[episode]['title']
-        hash = str(tvEpisodes[episode]['hash'])
         imageInfo = {}
         imageTypeToUse = 'show' if (tvEpisodes[episode]['show_thumb_url'] != '' and config['filter_episode_thumbnail_type'] == 'show') else 'season' if (tvEpisodes[episode]['season_thumb_url'] != '' and config['filter_episode_thumbnail_type'] == 'season') else 'episode' if (tvEpisodes[episode]['user_thumb_url'] != '') else ''
+        logging.info('main: imageTypeToUse = ' + imageTypeToUse)
         if (imageTypeToUse == 'episode'):
           imageInfo['thumb'] = tvEpisodes[episode]['user_thumb_url']
+          hash = str(tvEpisodes[episode]['show_hash'])
           imageInfo = processImage(hash, imageInfo['thumb'], 'episode', tvEpisodes[episode]['season_index'], tvEpisodes[episode]['index'])
         elif (imageTypeToUse == 'season'):
           imageInfo['thumb'] = tvEpisodes[episode]['season_thumb_url']
+          hash = str(tvEpisodes[episode]['show_hash'])
           imageInfo = processImage(hash, imageInfo['thumb'], 'season', tvEpisodes[episode]['season_index'], 0)
         elif (imageTypeToUse == 'show'):
           imageInfo['thumb'] = tvEpisodes[episode]['show_thumb_url']
+          hash = str(tvEpisodes[episode]['show_hash'])
           imageInfo = processImage(hash, imageInfo['thumb'], 'show', 0, 0)
         
         skipItem = False
