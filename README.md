@@ -108,6 +108,7 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * plex_web_server_guid - If DLNA is enabled, this can be left blank; otherwise set this if using plex web links.  Example (the portion of all X's is the value): https://app.plex.tv/web/app#!/server/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX/details/%2Flibrary%2Fmetadata%2F43268
 
 #####Logging
+* logging_enabled - True to log to a file or False to disable logging to a file
 * logging_debug_level - Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
 * logging_file_location - Leave blank to use default location - logs folder where the script file resides
 * logging_retain_previous_logs - True to append to the log file or False to overwrite the log file on every run of the script.

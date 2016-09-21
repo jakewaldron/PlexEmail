@@ -25,10 +25,13 @@ from email.header import Header
 from email.utils import formataddr
 from xml.etree.ElementTree import XML
 
-SCRIPT_VERSION = 'v0.9.0'
+SCRIPT_VERSION = 'v0.9.1'
 
 def replaceConfigTokens():
   ## The below code is for backwards compatibility
+  if ('logging_enabled' not in config):
+    config['logging_enabled'] = True
+    
   if ('plex_web_server_guid' not in config):
     config['plex_web_server_guid'] = ''
     
@@ -288,6 +291,9 @@ def replaceConfigTokens():
     
   if (config['web_domain'] != '' and config['web_domain'].rfind('/') < len(config['web_domain']) - len('/')):
     config['web_domain'] = config['web_domain'] + '/'
+    
+  if (config['logging_file_location'].rfind(os.path.sep) < len(config['logging_file_location']) - len(os.path.sep)):
+    config['logging_file_location'] = config['logging_file_location'] + os.path.sep
   
     
 def convertToHumanReadable(valuesToConvert):
@@ -863,16 +869,20 @@ if (not os.path.isfile(configFile)):
 config = {}
 execfile(configFile, config)
 replaceConfigTokens()
-  
-numeric_level = getattr(logging, config['logging_debug_level'], None)
-file_mode = 'a' if (config['logging_retain_previous_logs']) else 'w'
-if not isinstance(numeric_level, int):
-  numeric_level = getattr(logging, 'INFO')
-if not os.path.exists(os.path.dirname(os.path.realpath(sys.argv[0])) + os.path.sep + 'logs'):
-    os.makedirs(os.path.dirname(os.path.realpath(sys.argv[0])) + os.path.sep + 'logs')
-logging.basicConfig(level=numeric_level, format='%(asctime)s - %(levelname)s:%(message)s', filename=os.path.dirname(os.path.realpath(sys.argv[0])) + os.path.sep + 'logs' + os.path.sep + 'plexEmail.log', filemode=file_mode)
 
-sys.excepthook = exceptionHandler
+if (config['logging_enabled']):
+  numeric_level = getattr(logging, config['logging_debug_level'], None)
+  file_mode = 'a' if (config['logging_retain_previous_logs']) else 'w'
+  if not isinstance(numeric_level, int):
+    numeric_level = getattr(logging, 'INFO')
+  if (config['logging_file_location'] != ''):
+    logging.basicConfig(level=numeric_level, format='%(asctime)s - %(levelname)s:%(message)s', filename=config['logging_file_location'] + 'plexEmail.log', filemode=file_mode)
+  else:
+    if not os.path.exists(os.path.dirname(os.path.realpath(sys.argv[0])) + os.path.sep + 'logs'):
+        os.makedirs(os.path.dirname(os.path.realpath(sys.argv[0])) + os.path.sep + 'logs')
+    logging.basicConfig(level=numeric_level, format='%(asctime)s - %(levelname)s:%(message)s', filename=os.path.dirname(os.path.realpath(sys.argv[0])) + os.path.sep + 'logs' + os.path.sep + 'plexEmail.log', filemode=file_mode)
+
+  sys.excepthook = exceptionHandler
 
 testMode = False
 
