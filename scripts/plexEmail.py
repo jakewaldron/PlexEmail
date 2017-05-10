@@ -25,10 +25,13 @@ from email.header import Header
 from email.utils import formataddr
 from xml.etree.ElementTree import XML
 
-SCRIPT_VERSION = 'v0.9.2'
+SCRIPT_VERSION = 'v0.9.3'
 
 def replaceConfigTokens():
   ## The below code is for backwards compatibility
+  if ('filter_include_original_title' not in config):
+    config['filter_include_original_title'] = True
+    
   if ('logging_enabled' not in config):
     config['logging_enabled'] = True
     
@@ -910,7 +913,7 @@ plexWebLink = ''
 
 if (config['filter_include_plex_web_link']):
   if (config['plex_web_server_guid'] != ''):
-    plexWebLink = 'http://plex.tv/web/app#!/server/' + config['plex_web_server_guid'] + '/details/%2Flibrary%2Fmetadata%2F'
+    plexWebLink = 'http://plex.tv/web/app#!/server/' + config['plex_web_server_guid'] + '/details?key=%2Flibrary%2Fmetadata%2F'
   else:
     logging.info('Including Plex Web Link - Getting machine identifier from the DLNA DB')
     DLNA_DB_FILE = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Plug-in Support' + os.path.sep + 'Databases' + os.path.sep + 'com.plexapp.dlna.db'
@@ -923,7 +926,7 @@ if (config['filter_include_plex_web_link']):
         cur = con.cursor()    
         cur.execute('SELECT machine_identifier FROM remote_servers WHERE url LIKE "http://127.0.0.1%";')
         for row in cur:
-          plexWebLink = 'http://plex.tv/web/app#!/server/' + row[0] + '/details/%2Flibrary%2Fmetadata%2F'
+          plexWebLink = 'http://plex.tv/web/app#!/server/' + row[0] + '/details?key=%2Flibrary%2Fmetadata%2F'
           logging.info('plexWebLink = ' + plexWebLink)
         cur.close()
         del cur
@@ -1089,7 +1092,7 @@ with con:
     for movie in movies:
       movies[movie] = convertToHumanReadable(movies[movie])
       title = ''
-      if ('original_title' in movies[movie] and movies[movie]['original_title'] != ''):
+      if (config['filter_include_original_title'] and 'original_title' in movies[movie] and movies[movie]['original_title'] != ''):
         title += movies[movie]['original_title'] + ' AKA '
       title += movies[movie]['title']
       hash = str(movies[movie]['hash'])
@@ -1149,7 +1152,7 @@ with con:
     for show in tvShows:
       tvShows[show] = convertToHumanReadable(tvShows[show])
       title = ''
-      if (tvShows[show]['original_title'] != ''):
+      if (config['filter_include_original_title'] and 'original_title' in tvShows[show] and tvShows[show]['original_title'] != ''):
         title += tvShows[show]['original_title'] + ' AKA '
       title += tvShows[show]['title']
       hash = str(tvShows[show]['hash'])
@@ -1231,7 +1234,7 @@ with con:
     for season in tvSeasons:
       tvSeasons[season] = convertToHumanReadable(tvSeasons[season])
       title = ''
-      if (tvSeasons[season]['original_title'] != ''):
+      if (config['filter_include_original_title'] and 'original_title' in tvSeasons[season] and tvSeasons[season]['original_title'] != ''):
         title += tvSeasons[season]['original_title'] + ' AKA '
       title += tvSeasons[season]['title']
       imageInfo = {}
@@ -1342,11 +1345,11 @@ with con:
       if (tvEpisodes[episode]['parent_id'] not in tvSeasons):
         tvEpisodes[episode] = convertToHumanReadable(tvEpisodes[episode])
         showTitle = ''
-        if (tvEpisodes[episode]['show_original_title'] != ''):
+        if (config['filter_include_original_title'] and 'original_title' in tvEpisodes[episode] and tvEpisodes[episode]['show_original_title'] != ''):
           showTitle += tvEpisodes[episode]['show_original_title'] + ' AKA '
         showTitle += tvEpisodes[episode]['show_title']
         title = ''
-        if (tvEpisodes[episode]['original_title'] != ''):
+        if (config['filter_include_original_title'] and 'original_title' in tvEpisodes[episode] and tvEpisodes[episode]['original_title'] != ''):
           title += tvEpisodes[episode]['original_title'] + ' AKA '
         title += tvEpisodes[episode]['title']
         imageInfo = {}
@@ -1418,7 +1421,7 @@ with con:
     for artist in artists:
       artists[artist] = convertToHumanReadable(artists[artist])
       title = ''
-      if (artists[artist]['original_title'] != ''):
+      if (config['filter_include_original_title'] and 'original_title' in artists[artist] and artists[artist]['original_title'] != ''):
         title += artists[artist]['original_title'] + ' AKA '
       title += artists[artist]['title']
       hash = str(artists[artist]['hash'])
@@ -1522,7 +1525,7 @@ with con:
     for album in albums:
       albums[album] = convertToHumanReadable(albums[album])
       title = ''
-      if (albums[album]['original_title'] != ''):
+      if (config['filter_include_original_title'] and 'original_title' in albums[album] and albums[album]['original_title'] != ''):
         title += albums[album]['original_title'] + ' AKA '
       title += albums[album]['title']
       imageInfo = {}
