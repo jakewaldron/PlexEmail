@@ -94,29 +94,29 @@ python plexEmail.py --version
 
 The config file is in the scripts folder.  Before first run of the script, please update this file with your information.
 
-####Field Explanations:
+#### Field Explanations:
 
-#####Folder Paths
+##### Folder Paths
 * plex_data_folder - Location where the Plex Media Server folder is located - i.e. E:\\Library\\Plex\\
 * web_folder - Location of web/www/public_html folder is located - i.e. C:\\wamp\\www\\
 
-#####General
+##### General
 * date_format - Format to use for the date
 * date_days_back_to_search - Number of days to search backwards
 * date_hours_back_to_search - Number of hours to search backwards
 * date_minutes_back_to_search - Number of minutes to search backwards
 * plex_web_server_guid - If DLNA is enabled, this can be left blank; otherwise set this if using plex web links.  Example (the portion of all X's is the value): https://app.plex.tv/web/app#!/server/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX/details/%2Flibrary%2Fmetadata%2F43268
 
-#####Logging
+##### Logging
 * logging_debug_level - Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
 * logging_file_location - Leave blank to use default location - logs folder where the script file resides
 * logging_retain_previous_logs - True to append to the log file or False to overwrite the log file on every run of the script.
 
-#####Plex API Authentication - This is only used for shared user emails currently
+##### Plex API Authentication - This is only used for shared user emails currently
 * plex_username - Plex account username of the server
 * plex_password - Plex account password of the server
 
-#####Web
+##### Web
 * web_enabled - Enable the creation of the web page
 * web_only_save_images - Will not create the index.html, but will still save images to the image folder.
 * web_domain - Domain name of the web page
@@ -124,16 +124,16 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * web_delete_previous_images - True to delete all .jpg images in the web image folder prior to copying over current images
 * web_skip_if_no_additions - True to skip creating a web page if there are no new additions
 
-#####Image Upload - If this option is enabled, image hosting will be used for web and email
+##### Image Upload - If this option is enabled, image hosting will be used for web and email
 
-##Cloudinary - Sign up for a free account at: http://cloudinary.com/
+## Cloudinary - Sign up for a free account at: http://cloudinary.com/
 * upload_use_cloudinary - Use Cloudinary image hosting
 * upload_cloudinary_cloud_name - Cloudinary cloud name
 * upload_cloudinary_api_key - Cloudinary api key
 * upload_cloudinary_api_secret - Cloudinary api secret
 * upload_cloudinary_use_https - True to use https and False to use http for both uploading url and image locations in the email/web page
 
-#####Email
+##### Email
 * email_enabled - Enable the creation and sending of an email
 * email_individually - True to send out emails individually to each address in the email_to setting
 * email_use_bcc - True to send emails on using bcc instead of to (email_to settings will send to them using bcc)
@@ -150,7 +150,7 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * email_use_web_images - Use images from the web server instead of attaching them directly to the email
 * email_skip_if_no_additions - True to skip sending emails if there are no new additions
 
-#####Filtering
+##### Filtering
 * filter_include_plex_web_link - True to add hyperlinks to the images and titles to go to Plex Web for the specific title
 * filter_show_movies - True to show recently added movies
 * filter_movies_include - List of movies to include (Anything that does not match perfectly will not be included)
@@ -185,7 +185,7 @@ The config file is in the scripts folder.  Before first run of the script, pleas
   * exclude - A list of values that if the title matches any of, will not be shown
   * format - Date format to be applied (Only use this for air_date)
 
-#####Messages
+##### Messages
 * msg_notice - Used for special notices to the users. This can also be done through the command line using the -n flag.
 * msg_email_teaser - Teaser text on the email
 * msg_web_title - Title of the webpage
@@ -209,7 +209,7 @@ The config file is in the scripts folder.  Before first run of the script, pleas
 * msg_footer - Footer text at the bottom of the page
 * msg_no_new_content - Message to be displayed if no new content has been added
 
-#####Sorting
+##### Sorting
 * movie_sort_1 - Highest priority sort
 * movie_sort_1_reverse - Reverse the default sort
 * movie_sort_2 - Second priority sort
