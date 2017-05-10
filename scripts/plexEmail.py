@@ -25,10 +25,16 @@ from email.header import Header
 from email.utils import formataddr
 from xml.etree.ElementTree import XML
 
-SCRIPT_VERSION = 'v0.9.0'
+SCRIPT_VERSION = 'v0.9.3'
 
 def replaceConfigTokens():
   ## The below code is for backwards compatibility
+  if ('filter_include_original_title' not in config):
+    config['filter_include_original_title'] = True
+    
+  if ('logging_enabled' not in config):
+    config['logging_enabled'] = True
+    
   if ('plex_web_server_guid' not in config):
     config['plex_web_server_guid'] = ''
     
@@ -288,6 +294,9 @@ def replaceConfigTokens():
     
   if (config['web_domain'] != '' and config['web_domain'].rfind('/') < len(config['web_domain']) - len('/')):
     config['web_domain'] = config['web_domain'] + '/'
+    
+  if (config['logging_file_location'].rfind(os.path.sep) < len(config['logging_file_location']) - len(os.path.sep)):
+    config['logging_file_location'] = config['logging_file_location'] + os.path.sep
   
     
 def convertToHumanReadable(valuesToConvert):
@@ -863,21 +872,25 @@ if (not os.path.isfile(configFile)):
 config = {}
 execfile(configFile, config)
 replaceConfigTokens()
-  
-numeric_level = getattr(logging, config['logging_debug_level'], None)
-file_mode = 'a' if (config['logging_retain_previous_logs']) else 'w'
-if not isinstance(numeric_level, int):
-  numeric_level = getattr(logging, 'INFO')
-if not os.path.exists(os.path.dirname(os.path.realpath(sys.argv[0])) + os.path.sep + 'logs'):
-    os.makedirs(os.path.dirname(os.path.realpath(sys.argv[0])) + os.path.sep + 'logs')
-logging.basicConfig(level=numeric_level, format='%(asctime)s - %(levelname)s:%(message)s', filename=os.path.dirname(os.path.realpath(sys.argv[0])) + os.path.sep + 'logs' + os.path.sep + 'plexEmail.log', filemode=file_mode)
 
-sys.excepthook = exceptionHandler
+if (config['logging_enabled']):
+  numeric_level = getattr(logging, config['logging_debug_level'], None)
+  file_mode = 'a' if (config['logging_retain_previous_logs']) else 'w'
+  if not isinstance(numeric_level, int):
+    numeric_level = getattr(logging, 'INFO')
+  if (config['logging_file_location'] != ''):
+    logging.basicConfig(level=numeric_level, format='%(asctime)s - %(levelname)s:%(message)s', filename=config['logging_file_location'] + 'plexEmail.log', filemode=file_mode)
+  else:
+    if not os.path.exists(os.path.dirname(os.path.realpath(sys.argv[0])) + os.path.sep + 'logs'):
+        os.makedirs(os.path.dirname(os.path.realpath(sys.argv[0])) + os.path.sep + 'logs')
+    logging.basicConfig(level=numeric_level, format='%(asctime)s - %(levelname)s:%(message)s', filename=os.path.dirname(os.path.realpath(sys.argv[0])) + os.path.sep + 'logs' + os.path.sep + 'plexEmail.log', filemode=file_mode)
+
+  sys.excepthook = exceptionHandler
 
 testMode = False
 
 if ('test' in args):
-  logging.info('Test flag found - setting script instance to test mode.')
+  logging.info('Test flag is set to ' + str(args['test']))
   testMode = args['test']
 else:
   logging.info('Test flag not found.')
@@ -899,8 +912,8 @@ if ('upload_use_cloudinary' in config and config['upload_use_cloudinary']):
 plexWebLink = ''
 
 if (config['filter_include_plex_web_link']):
-  if (config['plex_web_server_guid'] == ''):
-    plexWebLink = 'http://plex.tv/web/app#!/server/' + config['plex_web_server_guid'] + '/details/%2Flibrary%2Fmetadata%2F'
+  if (config['plex_web_server_guid'] != ''):
+    plexWebLink = 'http://plex.tv/web/app#!/server/' + config['plex_web_server_guid'] + '/details?key=%2Flibrary%2Fmetadata%2F'
   else:
     logging.info('Including Plex Web Link - Getting machine identifier from the DLNA DB')
     DLNA_DB_FILE = config['plex_data_folder'] + 'Plex Media Server' + os.path.sep + 'Plug-in Support' + os.path.sep + 'Databases' + os.path.sep + 'com.plexapp.dlna.db'
@@ -908,12 +921,17 @@ if (config['filter_include_plex_web_link']):
     
     if (os.path.isfile(DLNA_DB_FILE)):
       try:
-        con = sqlite3.connect(DLNA_DB_FILE)
+        shutil.copyfile(DLNA_DB_FILE, DLNA_DB_FILE + '_plexemail')
+        con = sqlite3.connect(DLNA_DB_FILE + '_plexemail')
         cur = con.cursor()    
         cur.execute('SELECT machine_identifier FROM remote_servers WHERE url LIKE "http://127.0.0.1%";')
         for row in cur:
-          plexWebLink = 'http://plex.tv/web/app#!/server/' + row[0] + '/details/%2Flibrary%2Fmetadata%2F'
+          plexWebLink = 'http://plex.tv/web/app#!/server/' + row[0] + '/details?key=%2Flibrary%2Fmetadata%2F'
           logging.info('plexWebLink = ' + plexWebLink)
+        cur.close()
+        del cur
+        con.close()
+        os.remove(DLNA_DB_FILE + '_plexemail')
       except sqlite3.OperationalError:
         logging.warning(DLNA_DB_FILE + ' is locked or does not have the correct permissions')
     else:
@@ -926,7 +944,8 @@ if (not os.path.isfile(DATABASE_FILE)):
   print DATABASE_FILE + ' does not exist. Please make sure the plex_data_folder value is correct.'
   sys.exit()
   
-con = sqlite3.connect(DATABASE_FILE)
+shutil.copyfile(DATABASE_FILE, DATABASE_FILE + '_plexemail')
+con = sqlite3.connect(DATABASE_FILE + '_plexemail')
 con.text_factory = str
 
 with con:
@@ -946,6 +965,9 @@ with con:
         libraryFilter += ') '
       logging.debug('libraryFilter = ' + libraryFilter)
       
+      cur.close()
+      del cur
+      
     dateSearch = 'datetime(\'now\', \'localtime\', \'-' + str(config['date_days_back_to_search']) + ' days\', \'-' + str(config['date_hours_back_to_search']) + ' hours\', \'-' + str(config['date_minutes_back_to_search']) + ' minutes\')'
     logging.debug('dateSearch for DB query = ' + dateSearch)
 
@@ -959,6 +981,9 @@ with con:
     for row in cur:
       response[row[0]] = {'id': row[0], 'parent_id': row[1], 'metadata_type': row[2], 'title': row[3], 'title_sort': row[4], 'original_title': row[5], 'rating': row[6], 'tagline': row[7], 'summary': row[8], 'content_rating': row[9], 'duration': row[10], 'user_thumb_url': row[11], 'tags_genre': row[12], 'tags_director': row[13], 'tags_star': row[14], 'year': row[15], 'hash': row[16], 'index': row[17], 'studio': row[18], 'real_duration': row[19], 'air_date': row[20]}
       logging.debug(response[row[0]])    
+    
+    cur.close()
+    del cur
     
     emailNotice = ''
     htmlNotice = ''
@@ -1067,7 +1092,7 @@ with con:
     for movie in movies:
       movies[movie] = convertToHumanReadable(movies[movie])
       title = ''
-      if ('original_title' in movies[movie] and movies[movie]['original_title'] != ''):
+      if (config['filter_include_original_title'] and 'original_title' in movies[movie] and movies[movie]['original_title'] != ''):
         title += movies[movie]['original_title'] + ' AKA '
       title += movies[movie]['title']
       hash = str(movies[movie]['hash'])
@@ -1127,7 +1152,7 @@ with con:
     for show in tvShows:
       tvShows[show] = convertToHumanReadable(tvShows[show])
       title = ''
-      if (tvShows[show]['original_title'] != ''):
+      if (config['filter_include_original_title'] and 'original_title' in tvShows[show] and tvShows[show]['original_title'] != ''):
         title += tvShows[show]['original_title'] + ' AKA '
       title += tvShows[show]['title']
       hash = str(tvShows[show]['hash'])
@@ -1195,6 +1220,9 @@ with con:
         tvSeasons[season]['parent_hash'] = row[12]
         tvSeasons[season]['parent_thumb_url'] = row[13]
         tvSeasons[season]['studio'] = row[14]
+        
+      cur2.close()
+      del cur2
           
     if ('season_sort_3' in config and config['season_sort_3'] != ''):
       tvSeasons = OrderedDict(sorted(tvSeasons.iteritems(), key=lambda t: t[1][config['season_sort_3']], reverse=config['season_sort_3_reverse']))
@@ -1206,7 +1234,7 @@ with con:
     for season in tvSeasons:
       tvSeasons[season] = convertToHumanReadable(tvSeasons[season])
       title = ''
-      if (tvSeasons[season]['original_title'] != ''):
+      if (config['filter_include_original_title'] and 'original_title' in tvSeasons[season] and tvSeasons[season]['original_title'] != ''):
         title += tvSeasons[season]['original_title'] + ' AKA '
       title += tvSeasons[season]['title']
       imageInfo = {}
@@ -1294,9 +1322,15 @@ with con:
             tvEpisodes[episode]['show_thumb_url'] = row2[8]
             logging.debug('main: show_thumb_url = ' + row2[8])
             tvEpisodes[episode]['studio'] = row2[9]
+            
+          cur3.close()
+          del cur3
       else:
         logging.info('main: tvEpisodes[episode][\'parent_id\'] = None')
         del modifiedTVEpisodes[episode]
+        
+      cur2.close()
+      del cur2
         
     tvEpisodes = dict(modifiedTVEpisodes)
           
@@ -1311,11 +1345,11 @@ with con:
       if (tvEpisodes[episode]['parent_id'] not in tvSeasons):
         tvEpisodes[episode] = convertToHumanReadable(tvEpisodes[episode])
         showTitle = ''
-        if (tvEpisodes[episode]['show_original_title'] != ''):
+        if (config['filter_include_original_title'] and 'original_title' in tvEpisodes[episode] and tvEpisodes[episode]['show_original_title'] != ''):
           showTitle += tvEpisodes[episode]['show_original_title'] + ' AKA '
         showTitle += tvEpisodes[episode]['show_title']
         title = ''
-        if (tvEpisodes[episode]['original_title'] != ''):
+        if (config['filter_include_original_title'] and 'original_title' in tvEpisodes[episode] and tvEpisodes[episode]['original_title'] != ''):
           title += tvEpisodes[episode]['original_title'] + ' AKA '
         title += tvEpisodes[episode]['title']
         imageInfo = {}
@@ -1387,7 +1421,7 @@ with con:
     for artist in artists:
       artists[artist] = convertToHumanReadable(artists[artist])
       title = ''
-      if (artists[artist]['original_title'] != ''):
+      if (config['filter_include_original_title'] and 'original_title' in artists[artist] and artists[artist]['original_title'] != ''):
         title += artists[artist]['original_title'] + ' AKA '
       title += artists[artist]['title']
       hash = str(artists[artist]['hash'])
@@ -1457,6 +1491,9 @@ with con:
         albums[album]['parent_thumb_url'] = row[13]
         albums[album]['studio'] = row[14]
         
+      cur2.close()
+      del cur2
+        
       cur2 = con.cursor()
       cur2.execute("SELECT MD.id, MD.title, MD.title_sort, MD.original_title, MD.[index], ME.duration, ME.audio_codec FROM metadata_items MD LEFT OUTER JOIN media_items ME ON MD.id = ME.metadata_item_id WHERE parent_id = " + str(albums[album]['id']) + ";")
       
@@ -1475,7 +1512,9 @@ with con:
         except TypeError:
           duration = 'N/A'
         albums[album]['tracks'][row[4]] = {'id': row[0], 'title': row[1], 'title_sort': row[2], 'original_title': row[3], 'index': row[4], 'duration': duration, 'codec': row[6]}
-          
+      
+      cur2.close()
+      del cur2
     if ('album_sort_3' in config and config['album_sort_3'] != ''):
       albums = OrderedDict(sorted(albums.iteritems(), key=lambda t: t[1][config['album_sort_3']], reverse=config['album_sort_3_reverse']))
     if ('album_sort_2' in config and config['album_sort_2'] != ''):
@@ -1486,7 +1525,7 @@ with con:
     for album in albums:
       albums[album] = convertToHumanReadable(albums[album])
       title = ''
-      if (albums[album]['original_title'] != ''):
+      if (config['filter_include_original_title'] and 'original_title' in albums[album] and albums[album]['original_title'] != ''):
         title += albums[album]['original_title'] + ' AKA '
       title += albums[album]['title']
       imageInfo = {}
@@ -1701,3 +1740,6 @@ with con:
       print 'Emails were not sent because the option is disabled in the config file.'
     else:
       print 'Emails were not sent because there were no new additions in the timeframe specified.'
+
+con.close()
+os.remove(DATABASE_FILE + '_plexemail')
